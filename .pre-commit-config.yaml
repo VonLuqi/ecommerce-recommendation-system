@@ -1,0 +1,21 @@
+repos:
+  # ── Ruff: linter + formatter ─────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.10
+    hooks:
+      - id: ruff           # lint com auto-fix
+        args: [--fix]
+      - id: ruff-format    # formatação (substitui black)
+
+  # ── Hooks utilitários do pre-commit ──────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace        # remove espaços ao fim de linha
+      - id: end-of-file-fixer          # garante newline ao fim do arquivo
+      - id: check-yaml                 # valida sintaxe de arquivos YAML
+      - id: check-toml                 # valida sintaxe de arquivos TOML
+      - id: check-added-large-files    # bloqueia arquivos > 500 KB por padrão
+        args: [--maxkb=500]
+      - id: check-merge-conflict       # detecta marcadores de conflito de merge
+      - id: debug-statements           # detecta breakpoint() e pdb.set_trace()

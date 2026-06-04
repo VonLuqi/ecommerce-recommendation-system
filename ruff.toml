@@ -1,0 +1,35 @@
+# ruff — Linter e formatter do projeto.
+# Documentação: https://docs.astral.sh/ruff/
+
+target-version = "py311"
+line-length = 88
+
+[lint]
+# Regras ativas:
+#   E/W  — erros e avisos pycodestyle
+#   F    — pyflakes (imports não usados, variáveis indefinidas)
+#   I    — isort (ordenação de imports)
+#   N    — pep8-naming (convenções de nomenclatura)
+#   UP   — pyupgrade (sintaxe moderna do Python)
+#   ANN  — flake8-annotations (type hints obrigatórios)
+#   S    — flake8-bandit (segurança básica)
+#   B    — flake8-bugbear (bugs comuns)
+#   C4   — flake8-comprehensions (list/dict comprehensions)
+#   SIM  — flake8-simplify (simplificações de código)
+select = ["E", "W", "F", "I", "N", "UP", "ANN", "S", "B", "C4", "SIM"]
+
+ignore = [
+    "ANN401",  # Dynamically typed expressions (Any) are disallowed
+]
+
+[lint.per-file-ignores]
+# Em testes: dispensar anotações, assert nativo do pytest e uso de geradores
+# pseudo-aleatórios (S311 é falso-positivo em testes de reprodutibilidade)
+"tests/**" = ["ANN", "S101", "S311"]
+
+[lint.isort]
+known-first-party = ["recsys"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
