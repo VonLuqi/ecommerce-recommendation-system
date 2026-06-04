@@ -1,0 +1,24 @@
+# Parâmetros padrão do projeto.
+# Valores aqui são substituídos por variáveis de ambiente em produção.
+# Gerenciamento via Pydantic Settings será configurado na Etapa 3.
+
+project:
+  name: ecommerce-recommendation-system
+  environment: development  # development | staging | production
+
+data:
+  raw_path: data/raw
+  processed_path: data/processed
+  # Dataset: Amazon Reviews 2023 — subset Toys_and_Games
+  # Carregamento implementado na Etapa 4 (Pedro)
+  dataset_name: Toys_and_Games
+  kcore_threshold: 5  # filtro k-core: mínimo de interações por usuário/item
+
+model:
+  random_seed: 42
+  top_k: 10  # número de recomendações geradas por usuário
+
+recommender:
+  # Estratégia ativa. Opções: popularity | neumf
+  # Trocável sem alterar o código cliente (Strategy Pattern)
+  type: popularity
