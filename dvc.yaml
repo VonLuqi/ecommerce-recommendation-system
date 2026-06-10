@@ -1,0 +1,76 @@
+stages:
+
+  # ---------------------------------------------------------------------------
+  # 1. Pré-processamento
+  #    Lê os CSVs brutos do Instacart, aplica k-core e salva em data/interim/.
+  # ---------------------------------------------------------------------------
+  preprocess:
+    cmd: >-
+      python -m recsys.pipeline.preprocess
+      --raw-dir data/raw
+      --output data/interim/preprocessed.parquet
+      --kcore 5
+    deps:
+      - src/recsys/pipeline/preprocess.py
+      - src/recsys/data/instacart_loader.py
+      - src/recsys/data/loader.py
+      - data/raw/orders.csv
+      - data/raw/order_products__prior.csv
+    outs:
+      - data/interim/preprocessed.parquet
+
+  # ---------------------------------------------------------------------------
+  # 2. Feature engineering
+  #    Codifica IDs em índices inteiros e divide em treino/teste (80/20).
+  # ---------------------------------------------------------------------------
+  feature_eng:
+    cmd: >-
+      python -m recsys.pipeline.feature_eng
+      --input data/interim/preprocessed.parquet
+      --output-dir data/processed
+      --test-size 0.2
+      --seed 42
+    deps:
+      - src/recsys/pipeline/feature_eng.py
+      - data/interim/preprocessed.parquet
+    outs:
+      - data/processed/features.parquet
+      - data/processed/train.parquet
+      - data/processed/test.parquet
+
+  # ---------------------------------------------------------------------------
+  # 3. Treino
+  #    Treina o baseline PopularityRecommender e serializa o modelo.
+  # ---------------------------------------------------------------------------
+  train:
+    cmd: >-
+      python -m recsys.pipeline.train
+      --input data/processed/train.parquet
+      --output models/model.pkl
+      --seed 42
+    deps:
+      - src/recsys/pipeline/train.py
+      - src/recsys/recommenders/popularity.py
+      - src/recsys/recommenders/base.py
+      - data/processed/train.parquet
+    outs:
+      - models/model.pkl
+
+  # ---------------------------------------------------------------------------
+  # 4. Avaliação
+  #    Computa HR@10 e Coverage@10. Resultado em metrics.json (sem cache DVC).
+  # ---------------------------------------------------------------------------
+  evaluate:
+    cmd: >-
+      python -m recsys.pipeline.evaluate
+      --model models/model.pkl
+      --data data/processed/test.parquet
+      --output metrics.json
+      --top-k 10
+    deps:
+      - src/recsys/pipeline/evaluate.py
+      - models/model.pkl
+      - data/processed/test.parquet
+    metrics:
+      - metrics.json:
+          cache: false

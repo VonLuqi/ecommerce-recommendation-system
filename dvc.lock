@@ -1,0 +1,103 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python -m recsys.pipeline.preprocess --raw-dir data/raw --output 
+      data/interim/preprocessed.parquet --kcore 5
+    deps:
+    - path: data/raw/order_products__prior.csv
+      hash: md5
+      md5: 8bca7ad1968ee8e07760b94db74461fb
+      size: 577550706
+    - path: data/raw/orders.csv
+      hash: md5
+      md5: dd0b2f4ee716409b8e79e7b1c611a0b8
+      size: 108968645
+    - path: src/recsys/data/instacart_loader.py
+      hash: md5
+      md5: f3ac5005c8abb6a30745113931761e38
+      size: 4216
+    - path: src/recsys/data/loader.py
+      hash: md5
+      md5: a45d8fa3bf7b5f220385917448a0f378
+      size: 2076
+    - path: src/recsys/pipeline/preprocess.py
+      hash: md5
+      md5: abdc5ab1cf84eae5b336d4701b634fa2
+      size: 3754
+    outs:
+    - path: data/interim/preprocessed.parquet
+      hash: md5
+      md5: 5336cf76c25e0c82dd47e3169f3b3c2a
+      size: 59540240
+  feature_eng:
+    cmd: python -m recsys.pipeline.feature_eng --input 
+      data/interim/preprocessed.parquet --output-dir data/processed --test-size 
+      0.2 --seed 42
+    deps:
+    - path: data/interim/preprocessed.parquet
+      hash: md5
+      md5: 5336cf76c25e0c82dd47e3169f3b3c2a
+      size: 59540240
+    - path: src/recsys/pipeline/feature_eng.py
+      hash: md5
+      md5: 6769ef8638d53071d95e4d94dcc86e92
+      size: 4346
+    outs:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 8d805249373e0f2aff7299303934c70a
+      size: 109736817
+    - path: data/processed/test.parquet
+      hash: md5
+      md5: 7787a4b9426f06df7ea5077dcc51c1c1
+      size: 35545687
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: 20ce9b91996b373832b8efd91b41cabb
+      size: 141644488
+  train:
+    cmd: python -m recsys.pipeline.train --input data/processed/train.parquet 
+      --output models/model.pkl --seed 42
+    deps:
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: 20ce9b91996b373832b8efd91b41cabb
+      size: 141644488
+    - path: src/recsys/pipeline/train.py
+      hash: md5
+      md5: 3b8d65b5f2e25315c46a6241c79505ee
+      size: 2693
+    - path: src/recsys/recommenders/base.py
+      hash: md5
+      md5: dcec50f4798608d2abde74ade2ecbf91
+      size: 2111
+    - path: src/recsys/recommenders/popularity.py
+      hash: md5
+      md5: 138caaf10f5402c1fc8e77a52084f521
+      size: 2667
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: d3a2ae4e309794a54c572dca0b47eeb1
+      size: 360786
+  evaluate:
+    cmd: python -m recsys.pipeline.evaluate --model models/model.pkl --data 
+      data/processed/test.parquet --output metrics.json --top-k 10
+    deps:
+    - path: data/processed/test.parquet
+      hash: md5
+      md5: 7787a4b9426f06df7ea5077dcc51c1c1
+      size: 35545687
+    - path: models/model.pkl
+      hash: md5
+      md5: d3a2ae4e309794a54c572dca0b47eeb1
+      size: 360786
+    - path: src/recsys/pipeline/evaluate.py
+      hash: md5
+      md5: fb4dbfeb7201ca12940ce58a3d7afa26
+      size: 6073
+    outs:
+    - path: metrics.json
+      hash: md5
+      md5: 27c8e55ca283b21693c94f697512e14a
+      size: 151

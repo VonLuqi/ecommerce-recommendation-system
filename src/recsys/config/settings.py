@@ -33,10 +33,13 @@ class DataSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     raw_data_path: Path = Field(default=Path("data/raw"), alias="RAW_DATA_PATH")
+    interim_data_path: Path = Field(
+        default=Path("data/interim"), alias="INTERIM_DATA_PATH"
+    )
     processed_data_path: Path = Field(
         default=Path("data/processed"), alias="PROCESSED_DATA_PATH"
     )
-    dataset_name: str = Field(default="Toys_and_Games", alias="DATASET_NAME")
+    dataset_name: str = Field(default="instacart", alias="DATASET_NAME")
 
 
 class ModelSettings(BaseSettings):
