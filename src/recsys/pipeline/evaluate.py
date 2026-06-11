@@ -3,7 +3,8 @@
 Métricas computadas:
     - **HR@K** (Hit Rate at K): proporção de interações de teste em que
       o item real aparece no top-K recomendado.
-    - **Coverage@K**: proporção do catálogo coberta pelas recomendações.
+    - **Coverage@K**: proporção do catálogo **completo de treino** coberta
+      pelas recomendações (usa ``--train-data`` para definir o catálogo).
     - **num_users_evaluated**: quantidade de usuários no conjunto de teste.
     - **num_interactions_evaluated**: total de pares (user, item) avaliados.
 
@@ -14,6 +15,7 @@ Usage:
     python -m recsys.pipeline.evaluate \\
         --model models/model.pkl \\
         --data data/processed/test.parquet \\
+        --train-data data/processed/train.parquet \\
         --output metrics.json \\
         --top-k 10
 """
@@ -106,6 +108,7 @@ def catalog_coverage_at_k(
 def evaluate(
     model_path: Path,
     data_path: Path,
+    train_path: Path,
     output_path: Path,
     top_k: int,
 ) -> None:
@@ -114,6 +117,7 @@ def evaluate(
     Args:
         model_path: Caminho do arquivo ``.pkl`` do modelo treinado.
         data_path: Caminho do Parquet de teste.
+        train_path: Caminho do Parquet de treino (para definir o catálogo completo).
         output_path: Caminho do ``metrics.json`` de saída.
         top_k: Número de recomendações para HR@K e Coverage@K.
     """
@@ -126,7 +130,10 @@ def evaluate(
     _log.info("%d interações de teste, %d usuários únicos.",
               len(test_df), test_df["user_id"].nunique())
 
-    full_catalog: set[str] = set(test_df["item_id"].astype(str).unique())
+    _log.info("Lendo catálogo completo de '%s'...", train_path)
+    train_df: pd.DataFrame = pd.read_parquet(train_path, columns=["item_id"])
+    full_catalog: set[str] = set(train_df["item_id"].astype(str).unique())
+    _log.info("Catálogo completo: %d itens únicos de treino.", len(full_catalog))
 
     _log.info("Calculando HR@%d...", top_k)
     hr = hit_rate_at_k(model, test_df, top_k)
@@ -170,6 +177,12 @@ def _parse_args() -> argparse.Namespace:
         help="Parquet de teste.",
     )
     parser.add_argument(
+        "--train-data",
+        type=Path,
+        default=Path("data/processed/train.parquet"),
+        help="Parquet de treino (usado para definir o catálogo completo).",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=Path("metrics.json"),
@@ -189,6 +202,7 @@ if __name__ == "__main__":
     evaluate(
         model_path=args.model,
         data_path=args.data,
+        train_path=args.train_data,
         output_path=args.output,
         top_k=args.top_k,
     )

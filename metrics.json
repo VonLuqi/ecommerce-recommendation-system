@@ -1,6 +1,6 @@
 {
   "hr_at_10": 0.038331,
-  "coverage_at_10": 0.000226,
+  "coverage_at_10": 0.000216,
   "num_users_evaluated": 199646,
   "num_interactions_evaluated": 2657430,
   "top_k": 10

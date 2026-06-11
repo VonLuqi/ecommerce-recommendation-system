@@ -15,6 +15,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "numpy>=1.26",
     "pandas>=2.2",
+    "pyarrow>=15.0",
 ]
 
 [tool.poetry]
@@ -26,7 +27,6 @@ pytest-cov = ">=5.0"
 ruff = ">=0.4"
 pre-commit = ">=3.7"
 dvc = ">=3.50"
-pyarrow = ">=15.0"
 
 # ---------------------------------------------------------------------------
 # Build

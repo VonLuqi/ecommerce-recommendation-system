@@ -17,8 +17,9 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 
-# Dados brutos e processados (montados via volume ou DVC)
+# Dados brutos e processados (montados via volume ou DVC — não entram na imagem)
 data/raw/
+data/interim/
 data/processed/
 
 # Checkpoints de modelo (gerenciados via MLflow/DVC)

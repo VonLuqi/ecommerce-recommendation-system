@@ -1,0 +1,83 @@
+# =============================================================================
+# docker-compose.yml — Serviços do ecommerce-recommendation-system
+#
+# Serviços:
+#   mlflow   — MLflow Tracking Server (porta 5000)
+#   train    — Executa etapa de treino isolada (runtime)
+#   pipeline — Executa o pipeline completo via dvc repro (runtime + DVC)
+#
+# Uso rápido:
+#   docker compose up mlflow          # sobe só o servidor MLflow
+#   docker compose run --rm train     # roda treino uma vez e sai
+#   docker compose run --rm pipeline  # roda dvc repro e sai
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # MLflow Tracking Server
+  # Acessível em: http://localhost:5000
+  # ---------------------------------------------------------------------------
+  mlflow:
+    build:
+      context: .
+      target: runtime
+    command: >
+      mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri sqlite:///mlruns/mlflow.db
+        --default-artifact-root /app/mlruns/artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/app/mlruns
+    user: root
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Serviço de treino (execução pontual)
+  # Roda python -m recsys.pipeline.train e sai.
+  # Os dados e modelos são lidos/gravados via volumes do host.
+  # ---------------------------------------------------------------------------
+  train:
+    build:
+      context: .
+      target: runtime
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    env_file:
+      - .env
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    depends_on:
+      mlflow:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Pipeline completo via DVC (dvc repro)
+  # Integração Docker + DVC: executa preprocess → feature_eng → train → evaluate
+  # dentro do container, lendo dados do volume montado.
+  # ---------------------------------------------------------------------------
+  pipeline:
+    build:
+      context: .
+      target: pipeline
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    env_file:
+      - .env
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    depends_on:
+      mlflow:
+        condition: service_healthy

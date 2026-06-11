@@ -1,0 +1,4 @@
+[core]
+    remote = localremote
+['remote "localremote"']
+    url = C:\Users\vkenj\OneDrive\Documentos\Ecommerce\dvc-remote

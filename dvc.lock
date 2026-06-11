@@ -14,8 +14,8 @@ stages:
       size: 108968645
     - path: src/recsys/data/instacart_loader.py
       hash: md5
-      md5: f3ac5005c8abb6a30745113931761e38
-      size: 4216
+      md5: 7f2f76f42201690bfbbeaa6acbcf83c3
+      size: 4214
     - path: src/recsys/data/loader.py
       hash: md5
       md5: a45d8fa3bf7b5f220385917448a0f378
@@ -82,22 +82,31 @@ stages:
       size: 360786
   evaluate:
     cmd: python -m recsys.pipeline.evaluate --model models/model.pkl --data 
-      data/processed/test.parquet --output metrics.json --top-k 10
+      data/processed/test.parquet --train-data data/processed/train.parquet 
+      --output metrics.json --top-k 10
     deps:
     - path: data/processed/test.parquet
       hash: md5
       md5: 7787a4b9426f06df7ea5077dcc51c1c1
       size: 35545687
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: 20ce9b91996b373832b8efd91b41cabb
+      size: 141644488
     - path: models/model.pkl
       hash: md5
       md5: d3a2ae4e309794a54c572dca0b47eeb1
       size: 360786
     - path: src/recsys/pipeline/evaluate.py
       hash: md5
-      md5: fb4dbfeb7201ca12940ce58a3d7afa26
-      size: 6073
+      md5: d90ce5f6ded11b29299c97db5d524d88
+      size: 6780
+    - path: src/recsys/recommenders/base.py
+      hash: md5
+      md5: dcec50f4798608d2abde74ade2ecbf91
+      size: 2111
     outs:
     - path: metrics.json
       hash: md5
-      md5: 27c8e55ca283b21693c94f697512e14a
+      md5: 51798a6939c228a02e08c397807fafa5
       size: 151

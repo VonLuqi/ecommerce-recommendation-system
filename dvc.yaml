@@ -58,19 +58,23 @@ stages:
 
   # ---------------------------------------------------------------------------
   # 4. Avaliação
-  #    Computa HR@10 e Coverage@10. Resultado em metrics.json (sem cache DVC).
+  #    Computa HR@10 e Coverage@10 sobre o catálogo completo de treino.
+  #    Resultado em metrics.json (sem cache DVC).
   # ---------------------------------------------------------------------------
   evaluate:
     cmd: >-
       python -m recsys.pipeline.evaluate
       --model models/model.pkl
       --data data/processed/test.parquet
+      --train-data data/processed/train.parquet
       --output metrics.json
       --top-k 10
     deps:
       - src/recsys/pipeline/evaluate.py
+      - src/recsys/recommenders/base.py
       - models/model.pkl
       - data/processed/test.parquet
+      - data/processed/train.parquet
     metrics:
       - metrics.json:
           cache: false
