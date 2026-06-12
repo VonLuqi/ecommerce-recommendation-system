@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from recsys.recommenders.popularity import PopularityRecommender
+from recsys.recommenders.baseline import SVDRecommender
 from recsys.utils.seeds import fix_seeds
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -34,7 +34,7 @@ _log = logging.getLogger(__name__)
 
 
 def train(input_path: Path, output_path: Path, seed: int) -> None:
-    """Treina o baseline de popularidade e salva o modelo.
+    """Treina o baseline SVD e salva o modelo.
 
     Args:
         input_path: Caminho do Parquet de treino.
@@ -47,9 +47,9 @@ def train(input_path: Path, output_path: Path, seed: int) -> None:
     train_df: pd.DataFrame = pd.read_parquet(input_path)
     _log.info("%d interações de treino.", len(train_df))
 
-    model = PopularityRecommender()
+    model = SVDRecommender(n_components=50, random_state=seed)
     model.fit(train_df)
-    _log.info("Modelo treinado. Itens catalogados: %d.", len(model._popular_items))
+    _log.info("Modelo SVD treinado.")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("wb") as f:

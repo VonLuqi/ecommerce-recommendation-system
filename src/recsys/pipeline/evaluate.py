@@ -1,15 +1,12 @@
 """Etapa 4 do pipeline: avaliação do modelo.
 
 Métricas computadas:
-    - **HR@K** (Hit Rate at K): proporção de interações de teste em que
-      o item real aparece no top-K recomendado.
-    - **Coverage@K**: proporção do catálogo **completo de treino** coberta
-      pelas recomendações (usa ``--train-data`` para definir o catálogo).
-    - **num_users_evaluated**: quantidade de usuários no conjunto de teste.
-    - **num_interactions_evaluated**: total de pares (user, item) avaliados.
+    - Precision@K
+    - Recall@K
+    - NDCG@K
+    - MAP@K
 
-Os resultados são persistidos em ``metrics.json`` para rastreio pelo DVC
-e futuramente pelo MLflow (Etapa 8).
+Os resultados são persistidos em ``metrics.json`` para rastreio pelo DVC.
 
 Usage:
     python -m recsys.pipeline.evaluate \\
@@ -27,9 +24,11 @@ import json
 import logging
 import pickle
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
+from recsys.metrics.evaluation import map_at_k, ndcg_at_k, precision_at_k, recall_at_k
 from recsys.recommenders.base import BaseRecommender
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -37,72 +36,47 @@ _log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Métricas
+# Pipeline step
 # ---------------------------------------------------------------------------
 
 
-def hit_rate_at_k(
+def calculate_metrics(
     model: BaseRecommender,
     test_df: pd.DataFrame,
     top_k: int,
-) -> float:
-    """Calcula HR@K para todas as interações no conjunto de teste.
-
-    Para cada par (user_id, item_id) no teste, verifica se ``item_id``
-    está entre os top-K retornados pelo modelo para ``user_id``.
+) -> dict[str, float]:
+    """Calcula as métricas para todos os usuários no conjunto de teste.
 
     Args:
-        model: Recomendador já treinado (``fit`` já chamado).
+        model: Recomendador já treinado.
         test_df: DataFrame de teste com colunas ``user_id`` e ``item_id``.
         top_k: Número de recomendações a considerar.
 
     Returns:
-        HR@K como float entre 0.0 e 1.0.
+        Dicionário com médias das métricas calculadas.
     """
-    hits = 0
-    total = len(test_df)
+    precisions = []
+    recalls = []
+    ndcgs = []
+    maps = []
 
-    # Pré-computar recomendações por usuário evita chamadas repetidas
-    recommendations: dict[str, set[str]] = {}
-    for user_id in test_df["user_id"].unique():
-        recs = model.recommend(user_id=user_id, top_k=top_k)
-        recommendations[user_id] = set(recs)
+    user_true_items = test_df.groupby("user_id")["item_id"].apply(list).to_dict()
 
-    for _, row in test_df.iterrows():
-        if row["item_id"] in recommendations.get(str(row["user_id"]), set()):
-            hits += 1
+    for user_id, y_true in user_true_items.items():
+        y_true_str = [str(item) for item in y_true]
+        y_pred = model.recommend(user_id=user_id, top_k=top_k)
 
-    return hits / total if total > 0 else 0.0
+        precisions.append(precision_at_k(y_true_str, y_pred, top_k))
+        recalls.append(recall_at_k(y_true_str, y_pred, top_k))
+        ndcgs.append(ndcg_at_k(y_true_str, y_pred, top_k))
+        maps.append(map_at_k(y_true_str, y_pred, top_k))
 
-
-def catalog_coverage_at_k(
-    model: BaseRecommender,
-    test_df: pd.DataFrame,
-    full_catalog: set[str],
-    top_k: int,
-) -> float:
-    """Calcula a cobertura do catálogo pelas recomendações top-K.
-
-    Args:
-        model: Recomendador já treinado.
-        test_df: DataFrame de teste (para obter os usuários únicos).
-        full_catalog: Conjunto de todos os ``item_id`` do catálogo.
-        top_k: Número de recomendações a considerar por usuário.
-
-    Returns:
-        Proporção do catálogo coberta, entre 0.0 e 1.0.
-    """
-    recommended: set[str] = set()
-    for user_id in test_df["user_id"].unique():
-        recs = model.recommend(user_id=user_id, top_k=top_k)
-        recommended.update(recs)
-
-    return len(recommended & full_catalog) / len(full_catalog) if full_catalog else 0.0
-
-
-# ---------------------------------------------------------------------------
-# Pipeline step
-# ---------------------------------------------------------------------------
+    return {
+        f"precision_at_{top_k}": sum(precisions) / len(precisions) if precisions else 0.0,
+        f"recall_at_{top_k}": sum(recalls) / len(recalls) if recalls else 0.0,
+        f"ndcg_at_{top_k}": sum(ndcgs) / len(ndcgs) if ndcgs else 0.0,
+        f"map_at_{top_k}": sum(maps) / len(maps) if maps else 0.0,
+    }
 
 
 def evaluate(
@@ -117,9 +91,9 @@ def evaluate(
     Args:
         model_path: Caminho do arquivo ``.pkl`` do modelo treinado.
         data_path: Caminho do Parquet de teste.
-        train_path: Caminho do Parquet de treino (para definir o catálogo completo).
+        train_path: Caminho do Parquet de treino (mantido para CLI).
         output_path: Caminho do ``metrics.json`` de saída.
-        top_k: Número de recomendações para HR@K e Coverage@K.
+        top_k: Número de recomendações para as métricas.
     """
     _log.info("Carregando modelo de '%s'...", model_path)
     with model_path.open("rb") as f:
@@ -127,27 +101,16 @@ def evaluate(
 
     _log.info("Lendo conjunto de teste de '%s'...", data_path)
     test_df: pd.DataFrame = pd.read_parquet(data_path)
-    _log.info("%d interações de teste, %d usuários únicos.",
-              len(test_df), test_df["user_id"].nunique())
 
-    _log.info("Lendo catálogo completo de '%s'...", train_path)
-    train_df: pd.DataFrame = pd.read_parquet(train_path, columns=["item_id"])
-    full_catalog: set[str] = set(train_df["item_id"].astype(str).unique())
-    _log.info("Catálogo completo: %d itens únicos de treino.", len(full_catalog))
+    num_users = test_df["user_id"].nunique()
+    _log.info("%d interações de teste, %d usuários únicos.", len(test_df), num_users)
 
-    _log.info("Calculando HR@%d...", top_k)
-    hr = hit_rate_at_k(model, test_df, top_k)
+    _log.info("Calculando métricas @%d...", top_k)
+    metrics = calculate_metrics(model, test_df, top_k)
 
-    _log.info("Calculando Coverage@%d...", top_k)
-    coverage = catalog_coverage_at_k(model, test_df, full_catalog, top_k)
-
-    metrics = {
-        f"hr_at_{top_k}": round(hr, 6),
-        f"coverage_at_{top_k}": round(coverage, 6),
-        "num_users_evaluated": int(test_df["user_id"].nunique()),
-        "num_interactions_evaluated": int(len(test_df)),
-        "top_k": top_k,
-    }
+    metrics["num_users_evaluated"] = int(num_users)
+    metrics["num_interactions_evaluated"] = int(len(test_df))
+    metrics["top_k"] = top_k
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(metrics, indent=2))
@@ -180,7 +143,7 @@ def _parse_args() -> argparse.Namespace:
         "--train-data",
         type=Path,
         default=Path("data/processed/train.parquet"),
-        help="Parquet de treino (usado para definir o catálogo completo).",
+        help="Parquet de treino (mantido para não quebrar dvc.yaml).",
     )
     parser.add_argument(
         "--output",
@@ -192,7 +155,7 @@ def _parse_args() -> argparse.Namespace:
         "--top-k",
         type=int,
         default=10,
-        help="Número de recomendações para HR@K e Coverage@K.",
+        help="Número de recomendações para as métricas.",
     )
     return parser.parse_args()
 

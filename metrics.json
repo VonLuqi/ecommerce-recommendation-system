@@ -1,6 +1,8 @@
 {
-  "hr_at_10": 0.038331,
-  "coverage_at_10": 0.000216,
+  "precision_at_10": 0.02028941225969967,
+  "recall_at_10": 0.0259016333481746,
+  "ndcg_at_10": 0.021729365107561086,
+  "map_at_10": 0.007376685242895041,
   "num_users_evaluated": 199646,
   "num_interactions_evaluated": 2657430,
   "top_k": 10

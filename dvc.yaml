@@ -40,7 +40,7 @@ stages:
 
   # ---------------------------------------------------------------------------
   # 3. Treino
-  #    Treina o baseline PopularityRecommender e serializa o modelo.
+  #    Treina o baseline SVD e serializa o modelo.
   # ---------------------------------------------------------------------------
   train:
     cmd: >-
@@ -50,7 +50,7 @@ stages:
       --seed 42
     deps:
       - src/recsys/pipeline/train.py
-      - src/recsys/recommenders/popularity.py
+      - src/recsys/recommenders/baseline.py
       - src/recsys/recommenders/base.py
       - data/processed/train.parquet
     outs:
@@ -58,7 +58,7 @@ stages:
 
   # ---------------------------------------------------------------------------
   # 4. Avaliação
-  #    Computa HR@10 e Coverage@10 sobre o catálogo completo de treino.
+  #    Computa Precision@10, Recall@10, NDCG@10 e MAP@10 sobre teste.
   #    Resultado em metrics.json (sem cache DVC).
   # ---------------------------------------------------------------------------
   evaluate:
@@ -71,6 +71,7 @@ stages:
       --top-k 10
     deps:
       - src/recsys/pipeline/evaluate.py
+      - src/recsys/metrics/evaluation.py
       - src/recsys/recommenders/base.py
       - models/model.pkl
       - data/processed/test.parquet
