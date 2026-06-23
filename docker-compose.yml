@@ -28,8 +28,10 @@ services:
         --port 5000
         --backend-store-uri sqlite:///mlruns/mlflow.db
         --default-artifact-root /app/mlruns/artifacts
+    networks:
+      - default
     ports:
-      - "5000:5000"
+      - "5001:5000"
     volumes:
       - ./mlruns:/app/mlruns
     user: root
@@ -61,6 +63,8 @@ services:
     depends_on:
       mlflow:
         condition: service_healthy
+    networks:
+      - default
 
   # ---------------------------------------------------------------------------
   # Pipeline completo via DVC (dvc repro)
@@ -78,6 +82,9 @@ services:
       - .env
     environment:
       MLFLOW_TRACKING_URI: http://mlflow:5000
+    networks:
+      - default
     depends_on:
       mlflow:
         condition: service_healthy
+    command: /opt/venv/bin/dvc repro --no-commit

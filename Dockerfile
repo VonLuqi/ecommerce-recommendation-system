@@ -75,14 +75,21 @@ FROM runtime AS pipeline
 
 USER root
 
-# Instala DVC (ferramenta de orquestração — não faz parte do runtime de inferência)
-RUN /opt/venv/bin/pip install --no-cache-dir "dvc>=3.50"
+# Instala DVC e git (necessários pra rodar dvc repro)
+RUN /opt/venv/bin/pip install --no-cache-dir "dvc>=3.50" \
+    && apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copia arquivos de configuração do pipeline
 COPY dvc.yaml dvc.lock ./
 COPY configs/ ./configs/
+COPY .dvc/ ./.dvc/
+
+# Inicializa git repo dentro do container pra DVC funcionar
+RUN git init /app && git config --global user.email "app@app" && git config --global user.name "app"
+
+RUN chown -R app:app /app
 
 USER app
 
-ENTRYPOINT ["dvc"]
-CMD ["repro"]
+CMD ["dvc", "repro", "--no-commit"]
