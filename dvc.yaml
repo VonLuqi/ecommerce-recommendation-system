@@ -48,11 +48,30 @@ stages:
       --input data/processed/train.parquet
       --output models/model.pkl
       --seed 42
+      --mode ${model.recommender_type}
+      --embedding-dim ${model.embedding_dim}
+      --epochs ${model.epochs}
+      --batch-size ${model.batch_size}
+      --lr ${model.lr}
+      --dropout ${model.dropout}
+      --patience ${model.patience}
+      --val-split ${model.val_split}
     deps:
       - src/recsys/pipeline/train.py
       - src/recsys/recommenders/baseline.py
+      - src/recsys/recommenders/neural.py
+      - src/recsys/models/neural_net.py
       - src/recsys/recommenders/base.py
       - data/processed/train.parquet
+    params:
+      - model.recommender_type
+      - model.embedding_dim
+      - model.epochs
+      - model.batch_size
+      - model.lr
+      - model.dropout
+      - model.patience
+      - model.val_split
     outs:
       - models/model.pkl
 
@@ -78,4 +97,13 @@ stages:
       - data/processed/train.parquet
     metrics:
       - metrics.json:
+          cache: false
+
+  run_tests:
+    cmd: python -m pytest > smoke_test_output.log
+    deps:
+      - src/recsys/metrics/evaluation.py
+      - tests/
+    outs:
+      - smoke_test_output.log:
           cache: false

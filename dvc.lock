@@ -14,16 +14,16 @@ stages:
       size: 108968645
     - path: src/recsys/data/instacart_loader.py
       hash: md5
-      md5: 9f92ca0c6f52b1b195db731f5e804374
-      size: 4337
+      md5: 7f2f76f42201690bfbbeaa6acbcf83c3
+      size: 4214
     - path: src/recsys/data/loader.py
       hash: md5
-      md5: a45d8fa3bf7b5f220385917448a0f378
-      size: 2076
+      md5: 286e9e1b7e75cb0d7a9a3fd57b052f08
+      size: 2015
     - path: src/recsys/pipeline/preprocess.py
       hash: md5
-      md5: f05aa0c65b5e00f96e9755bc9cb6619b
-      size: 3873
+      md5: abdc5ab1cf84eae5b336d4701b634fa2
+      size: 3754
     outs:
     - path: data/interim/preprocessed.parquet
       hash: md5
@@ -40,8 +40,8 @@ stages:
       size: 59540240
     - path: src/recsys/pipeline/feature_eng.py
       hash: md5
-      md5: 68e02adcbd9519edff64f8b428c2730b
-      size: 4487
+      md5: 6769ef8638d53071d95e4d94dcc86e92
+      size: 4346
     outs:
     - path: data/processed/features.parquet
       hash: md5
@@ -65,20 +65,20 @@ stages:
       size: 141644488
     - path: src/recsys/pipeline/train.py
       hash: md5
-      md5: 7ba876eaf862072aa80c110735cbf8a8
-      size: 2742
+      md5: bcbd23aa488e352f9981381af4a095b8
+      size: 8236
     - path: src/recsys/recommenders/base.py
       hash: md5
-      md5: dcec50f4798608d2abde74ade2ecbf91
-      size: 2111
+      md5: a6c12d550e6054131b4f9777d1748d2b
+      size: 2052
     - path: src/recsys/recommenders/baseline.py
       hash: md5
-      md5: 588b2775956dc378cf028198062cd482
-      size: 3476
+      md5: 257cbcec6926a5110ba882d59868dc55
+      size: 3375
     outs:
     - path: models/model.pkl
       hash: md5
-      md5: 5a1c118a24e340d4632fba2286eb65ce
+      md5: 07e36d54e2bf2c6be9a817b211bd7b9e
       size: 102791678
   evaluate:
     cmd: python -m recsys.pipeline.evaluate --model models/model.pkl --data 
@@ -95,22 +95,22 @@ stages:
       size: 141644488
     - path: models/model.pkl
       hash: md5
-      md5: 5a1c118a24e340d4632fba2286eb65ce
+      md5: 07e36d54e2bf2c6be9a817b211bd7b9e
       size: 102791678
     - path: src/recsys/metrics/evaluation.py
       hash: md5
-      md5: 4f81cfdc7c67f9ed8c42408b307819b8
-      size: 2862
+      md5: 654a771251d90ab7abfe8d819a981c22
+      size: 2750
     - path: src/recsys/pipeline/evaluate.py
       hash: md5
-      md5: 4be4be32fe15d2ff4813700f26077ce6
-      size: 5388
+      md5: 1544bfa3b614d4fc3ee79300b7392ed2
+      size: 5217
     - path: src/recsys/recommenders/base.py
       hash: md5
-      md5: dcec50f4798608d2abde74ade2ecbf91
-      size: 2111
+      md5: a6c12d550e6054131b4f9777d1748d2b
+      size: 2052
     outs:
     - path: metrics.json
       hash: md5
-      md5: b352ae49916da78c4ab5ad6059e867f5
-      size: 254
+      md5: d8b40f422f66bc60ab2e43977a3d7b30
+      size: 246
