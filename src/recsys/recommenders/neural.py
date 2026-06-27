@@ -21,6 +21,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import torch
+import mlflow
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 
@@ -39,8 +40,7 @@ _log = logging.getLogger(__name__)
 class _InteractionDataset(Dataset):
     """Dataset PyTorch para pares (user_id, item_id, rating).
 
-    Constrói tensores directamente a partir de arrays NumPy para
-    carregamento eficiente.
+    Mantém arrays NumPy em memória para evitar overhead de tensores na indexação individual.
     """
 
     def __init__(self, users: np.ndarray, items: np.ndarray, ratings: np.ndarray) -> None:
@@ -51,15 +51,83 @@ class _InteractionDataset(Dataset):
             items: Array 1-D de índices de itens.
             ratings: Array 1-D de ratings (float).
         """
-        self.users = torch.tensor(users, dtype=torch.long)
-        self.items = torch.tensor(items, dtype=torch.long)
-        self.ratings = torch.tensor(ratings, dtype=torch.float32)
+        self.users = users
+        self.items = items
+        self.ratings = ratings
 
     def __len__(self) -> int:
         return len(self.ratings)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        return self.users[idx], self.items[idx], self.ratings[idx]
+    def __getitem__(self, idx: int) -> tuple[int, int, float]:
+        return int(self.users[idx]), int(self.items[idx]), float(self.ratings[idx])
+
+
+class _NegativeSamplingCollate:
+    """Collation function personalizada para gerar negativos dinamicamente por batch.
+
+    Evita instanciar todas as amostras negativas em memória de uma única vez.
+    """
+
+    def __init__(self, user_pos: list[set[int]], num_items: int, num_negatives: int = 4):
+        self.user_pos = user_pos
+        self.num_items = num_items
+        self.num_negatives = num_negatives
+
+    def __call__(
+        self, batch: list[tuple[int, int, float]]
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        batch_size = len(batch)
+        total_len = batch_size * (1 + self.num_negatives)
+
+        users = np.empty(total_len, dtype=np.int64)
+        items = np.empty(total_len, dtype=np.int64)
+        ratings = np.empty(total_len, dtype=np.float32)
+
+        # Preenche os positivos
+        for idx, (u, i, r) in enumerate(batch):
+            users[idx] = u
+            items[idx] = i
+            ratings[idx] = 1.0
+
+        # Preenche os negativos
+        write_idx = batch_size
+        for u, _, _ in batch:
+            pos_set = self.user_pos[u]
+            sampled = 0
+            attempts = 0
+            while sampled < self.num_negatives and attempts < self.num_negatives * 2:
+                random_items = np.random.randint(
+                    0, self.num_items, size=(self.num_negatives - sampled) * 2
+                )
+                for item in random_items:
+                    if item not in pos_set:
+                        users[write_idx] = u
+                        items[write_idx] = item
+                        ratings[write_idx] = 0.0
+                        write_idx += 1
+                        sampled += 1
+                        if sampled == self.num_negatives:
+                            break
+                attempts += 1
+
+            # Fallback seguro caso não haja itens suficientes ou exceda tentativas
+            if sampled < self.num_negatives:
+                for _ in range(self.num_negatives - sampled):
+                    users[write_idx] = u
+                    items[write_idx] = 0
+                    ratings[write_idx] = 0.0
+                    write_idx += 1
+
+        if write_idx < total_len:
+            users = users[:write_idx]
+            items = items[:write_idx]
+            ratings = ratings[:write_idx]
+
+        return (
+            torch.tensor(users, dtype=torch.long),
+            torch.tensor(items, dtype=torch.long),
+            torch.tensor(ratings, dtype=torch.float32),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +230,7 @@ class NeuralRecommender(BaseRecommender):
         weight_decay: float = 0.0,
         patience: int = 5,
         min_delta: float = 1e-4,
-        val_split: float = 0.2,
+        val_split: float = 0.02,
         seed: int = 42,
         device: str | None = None,
     ) -> None:
@@ -201,7 +269,15 @@ class NeuralRecommender(BaseRecommender):
         self.min_delta = min_delta
         self.val_split = val_split
         self.seed = seed
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        if device is None:
+            if torch.cuda.is_available():
+                self.device = "cuda"
+            elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                self.device = "mps"
+            else:
+                self.device = "cpu"
+        else:
+            self.device = device
 
         # Preenchido durante fit()
         self._model: NeuMF | None = None
@@ -216,15 +292,113 @@ class NeuralRecommender(BaseRecommender):
     # Fit — Treino com Early Stopping
     # ------------------------------------------------------------------
 
+    def _sample_negatives_dataset(
+        self,
+        user_ids: np.ndarray,
+        item_ids: np.ndarray,
+        num_negatives: int = 4,
+    ) -> _InteractionDataset:
+        """Amostra itens negativos de forma altamente otimizada em NumPy.
+
+        Retorna diretamente um _InteractionDataset para evitar overhead do pandas.
+        """
+        num_users = len(self._user_idx)
+        num_items = len(self._item_idx)
+
+        # Cria lista de sets para itens positivos de cada usuário
+        user_pos = [set() for _ in range(num_users)]
+        for u, i in zip(user_ids, item_ids):
+            user_pos[u].add(i)
+
+        # Conta positivos por usuário
+        user_pos_counts = np.bincount(user_ids, minlength=num_users)
+
+        # Calcula o tamanho do dataset final (positivos + negativos)
+        num_pos = len(user_ids)
+        num_neg = num_pos * num_negatives
+        total_len = num_pos + num_neg
+
+        # Aloca arrays NumPy contíguos
+        out_users = np.empty(total_len, dtype=np.int64)
+        out_items = np.empty(total_len, dtype=np.int64)
+        out_ratings = np.empty(total_len, dtype=np.float32)
+
+        # Preenche os positivos no início
+        out_users[:num_pos] = user_ids
+        out_items[:num_pos] = item_ids
+        out_ratings[:num_pos] = 1.0
+
+        # Preenche os negativos a partir do final dos positivos
+        write_idx = num_pos
+        for u in range(num_users):
+            n_pos = user_pos_counts[u]
+            if n_pos == 0:
+                continue
+
+            n_neg_to_sample = n_pos * num_negatives
+            pos_set = user_pos[u]
+
+            sampled = 0
+            attempts = 0
+            # Amostra em lote para minimizar chamadas do gerador aleatório
+            while sampled < n_neg_to_sample and attempts < n_neg_to_sample * 2:
+                chunk_size = n_neg_to_sample - sampled
+                random_items = np.random.randint(0, num_items, size=chunk_size * 2)
+                for item in random_items:
+                    if item not in pos_set:
+                        out_users[write_idx] = u
+                        out_items[write_idx] = item
+                        out_ratings[write_idx] = 0.0
+                        write_idx += 1
+                        sampled += 1
+                        pos_set.add(item)  # Evita duplicados no mesmo batch de negativos
+                        if sampled == n_neg_to_sample:
+                            break
+                attempts += 1
+
+        # Trunca caso não tenha conseguido amostrar o número total devido ao limite de tentativas
+        if write_idx < total_len:
+            out_users = out_users[:write_idx]
+            out_items = out_items[:write_idx]
+            out_ratings = out_ratings[:write_idx]
+
+        return _InteractionDataset(out_users, out_items, out_ratings)
+
+    def _sample_negatives(
+        self,
+        df: pd.DataFrame,
+        num_negatives: int = 4,
+    ) -> pd.DataFrame:
+        """Amostra uniformemente itens negativos para cada utilizador no DataFrame.
+
+        Compatibilidade com testes legados.
+        """
+        user_ids = df["user_id"].map(self._user_idx).to_numpy(dtype=np.int32)
+        item_ids = df["item_id"].map(self._item_idx).to_numpy(dtype=np.int32)
+
+        dataset = self._sample_negatives_dataset(user_ids, item_ids, num_negatives)
+
+        users = [self._idx_to_user[u.item()] for u in dataset.users]
+        items = [self._idx_to_item[i.item()] for i in dataset.items]
+        ratings = [r.item() for r in dataset.ratings]
+
+        return pd.DataFrame({
+            "user_id": users,
+            "item_id": items,
+            "rating": ratings
+        })
+
     def fit(self, interactions: pd.DataFrame) -> None:
-        """Treina o NeuMF com early stopping.
+        """Treina o NeuMF com early stopping e amostragem dinâmica de negativos.
 
         1. Fixa seeds para reprodutibilidade.
         2. Mapeia IDs para índices contínuos.
-        3. Divide em treino/validação.
-        4. Instancia modelo, optimizador e loss.
-        5. Loop de épocas com early stopping.
-        6. Restaura melhor estado do modelo.
+        3. Converte interações para inteiros NumPy uma única vez.
+        4. Divide em treino/validação.
+        5. Amostra negativos fixos para validação.
+        6. Instancia modelo, optimizador e loss.
+        7. Loop de épocas com amostragem dinâmica de negativos em lote (on-the-fly) e early stopping.
+        8. Restaura melhor estado do modelo.
 
         Args:
             interactions: DataFrame com colunas ``user_id``, ``item_id`` e ``rating``.
@@ -244,25 +418,43 @@ class NeuralRecommender(BaseRecommender):
         num_users = len(users)
         num_items = len(items)
 
+        # Mapeamento para inteiros NumPy para alta performance
+        user_ids_mapped = interactions["user_id"].map(self._user_idx).to_numpy(dtype=np.int32)
+        item_ids_mapped = interactions["item_id"].map(self._item_idx).to_numpy(dtype=np.int32)
+
         # --- Split treino / validação ---
         indices = np.arange(len(interactions))
         np.random.shuffle(indices)
         split = int(len(indices) * (1.0 - self.val_split))
-        train_idx = indices[:split]
-        val_idx = indices[split:]
 
-        train_df = interactions.iloc[train_idx]
-        val_df = interactions.iloc[val_idx]
+        train_user_ids = user_ids_mapped[indices[:split]]
+        train_item_ids = item_ids_mapped[indices[:split]]
 
-        # --- Datasets e DataLoaders ---
-        train_dataset = self._build_dataset(train_df)
-        val_dataset = self._build_dataset(val_df)
+        val_user_ids = user_ids_mapped[indices[split:]]
+        val_item_ids = item_ids_mapped[indices[split:]]
 
-        train_loader = DataLoader(
-            train_dataset, batch_size=self.batch_size, shuffle=True,
-        )
+        # Cria lista de sets com os positivos de cada usuário (para verificação rápida de negativos)
+        user_pos = [set() for _ in range(num_users)]
+        for u, i in zip(user_ids_mapped, item_ids_mapped):
+            user_pos[u].add(i)
+
+        # --- Datasets e DataLoaders de Validação (negativos fixos pré-gerados) ---
+        _log.info("Gerando negativos para conjunto de validação...")
+        val_dataset = self._sample_negatives_dataset(val_user_ids, val_item_ids, num_negatives=4)
         val_loader = DataLoader(
             val_dataset, batch_size=self.batch_size, shuffle=False,
+        )
+
+        # --- Dataset e DataLoader de Treino (negativos gerados on-the-fly por batch) ---
+        train_dataset = _InteractionDataset(
+            train_user_ids, train_item_ids, np.ones(len(train_user_ids), dtype=np.float32)
+        )
+        train_collate = _NegativeSamplingCollate(user_pos, num_items, num_negatives=4)
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            collate_fn=train_collate,
         )
 
         # --- Modelo ---
@@ -295,11 +487,10 @@ class NeuralRecommender(BaseRecommender):
 
         # --- Loop de treino ---
         _log.info(
-            "Iniciando treino NeuMF: %d users, %d items, %d treino, %d val, "
+            "Iniciando treino NeuMF: %d users, %d items, %d val (com negs), "
             "device=%s",
             num_users,
             num_items,
-            len(train_dataset),
             len(val_dataset),
             self.device,
         )
@@ -316,8 +507,13 @@ class NeuralRecommender(BaseRecommender):
                 val_loss,
             )
 
-            # MLflow preparado: mlflow.log_metric("train_loss", train_loss, step=epoch)
-            # MLflow preparado: mlflow.log_metric("val_loss", val_loss, step=epoch)
+            try:
+                # Loga apenas se houver uma run ativa
+                if mlflow.active_run():
+                    mlflow.log_metric("train_loss", train_loss, step=epoch)
+                    mlflow.log_metric("val_loss", val_loss, step=epoch)
+            except Exception as e:
+                _log.warning("Falha ao logar no MLflow: %s", e)
 
             if early_stopping.step(val_loss, self._model):
                 _log.info(
@@ -382,6 +578,63 @@ class NeuralRecommender(BaseRecommender):
 
         top_indices = np.argsort(scores)[::-1][:top_k]
         return [self._idx_to_item[idx] for idx in top_indices]
+
+    def recommend_batch(
+        self,
+        user_ids: list[Any],
+        top_k: int = 10,
+    ) -> dict[Any, list[str]]:
+        """Retorna recomendações top-K em lote de forma otimizada usando tensores do PyTorch.
+
+        Args:
+            user_ids: Lista de identificadores de utilizadores.
+            top_k: Número de recomendações a retornar. Padrão: 10.
+
+        Returns:
+            Dicionário mapeando cada user_id para sua lista de recomendações.
+
+        Raises:
+            RuntimeError: Se o modelo não foi treinado.
+        """
+        if not self._is_fitted or self._model is None:
+            raise RuntimeError("Chame fit() antes de recommend_batch().")
+
+        known_users = [u for u in user_ids if u in self._user_idx]
+        results = {u: [] for u in user_ids}
+
+        if not known_users:
+            return results
+
+        # Processa usuários em blocos para evitar estourar a memória (CPU ou GPU)
+        batch_size = 16
+        num_items = len(self._item_idx)
+
+        for i in range(0, len(known_users), batch_size):
+            batch_u = known_users[i : i + batch_size]
+            u_indices = [self._user_idx[u] for u in batch_u]
+
+            # Expande tensores: repete usuários para cada item, e repete a lista de todos os itens
+            user_expanded = np.repeat(u_indices, num_items)
+            item_expanded = np.tile(np.arange(num_items), len(batch_u))
+
+            user_tensor = torch.tensor(user_expanded, dtype=torch.long, device=self.device)
+            item_tensor = torch.tensor(item_expanded, dtype=torch.long, device=self.device)
+
+            with torch.no_grad():
+                scores = self._model(user_tensor, item_tensor)
+                scores = scores.cpu().numpy().reshape(len(batch_u), num_items)
+
+            # Usa argpartition para encontrar os top-K maiores na CPU usando NumPy
+            partition_idx = np.argpartition(scores, -top_k, axis=1)[:, -top_k:]
+
+            for idx_in_batch, u_id in enumerate(batch_u):
+                user_top_indices = partition_idx[idx_in_batch]
+                user_scores = scores[idx_in_batch, user_top_indices]
+                sorted_inner_idx = np.argsort(user_scores)[::-1]
+                final_item_indices = user_top_indices[sorted_inner_idx]
+                results[u_id] = [self._idx_to_item[idx] for idx in final_item_indices]
+
+        return results
 
     # ------------------------------------------------------------------
     # Salvar / Carregar

@@ -99,3 +99,52 @@ class SVDRecommender(BaseRecommender):
 
         top_indices = np.argsort(scores)[::-1][:top_k]
         return [self._idx_to_item[idx] for idx in top_indices]
+
+    def recommend_batch(
+        self,
+        user_ids: list[Any],
+        top_k: int = 10,
+    ) -> dict[Any, list[str]]:
+        """Retorna recomendações top-K em lote de forma otimizada usando NumPy.
+
+        Args:
+            user_ids: Lista de identificadores de usuários.
+            top_k: Número de recomendações a retornar. Padrão: 10.
+
+        Returns:
+            Dicionário mapeando user_id para lista de recomendações.
+
+        Raises:
+            RuntimeError: Se o modelo não foi treinado.
+        """
+        if not self._is_fitted:
+            raise RuntimeError("Chame fit() antes de recommend_batch().")
+
+        known_users = [u for u in user_ids if u in self._user_idx]
+        results = {u: [] for u in user_ids}
+
+        if not known_users:
+            return results
+
+        # Processa em blocos para evitar consumo excessivo de memória em grandes datasets
+        batch_size = 1000
+        for i in range(0, len(known_users), batch_size):
+            batch_u = known_users[i : i + batch_size]
+            u_indices = [self._user_idx[u] for u in batch_u]
+
+            # Multiplicação matricial em lote: (B, components) x (components, items) -> (B, items)
+            batch_user_factors = self._user_factors[u_indices]
+            scores = np.dot(batch_user_factors, self._item_factors)
+
+            # Usa argpartition para selecionar os top-K maiores de forma linear O(N)
+            partition_idx = np.argpartition(scores, -top_k, axis=1)[:, -top_k:]
+
+            for idx_in_batch, u_id in enumerate(batch_u):
+                user_top_indices = partition_idx[idx_in_batch]
+                user_scores = scores[idx_in_batch, user_top_indices]
+                # Ordena apenas as K posições selecionadas (muito rápido)
+                sorted_inner_idx = np.argsort(user_scores)[::-1]
+                final_item_indices = user_top_indices[sorted_inner_idx]
+                results[u_id] = [self._idx_to_item[idx] for idx in final_item_indices]
+
+        return results
