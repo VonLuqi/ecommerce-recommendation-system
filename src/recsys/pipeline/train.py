@@ -32,7 +32,9 @@ import pickle
 from pathlib import Path
 
 import pandas as pd
+import mlflow
 
+from recsys.config import settings
 from recsys.utils.seeds import fix_seeds
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -62,9 +64,9 @@ def train_svd(
 
     fix_seeds(seed)
 
-    # MLflow: mlflow.log_param("model_type", "svd")
-    # MLflow: mlflow.log_param("n_components", n_components)
-    # MLflow: mlflow.log_param("seed", seed)
+    mlflow.log_param("model_type", "svd")
+    mlflow.log_param("n_components", n_components)
+    mlflow.log_param("seed", seed)
 
     _log.info("Lendo dados de treino de '%s'...", input_path)
     train_df: pd.DataFrame = pd.read_parquet(input_path)
@@ -79,7 +81,7 @@ def train_svd(
         pickle.dump(model, f)
     _log.info("Modelo salvo em '%s'.", output_path)
 
-    # MLflow: mlflow.log_artifact(str(output_path))
+    mlflow.log_artifact(str(output_path))
 
 
 def train_neural(
@@ -119,17 +121,17 @@ def train_neural(
 
     fix_seeds(seed)
 
-    # MLflow: mlflow.log_param("model_type", "neumf")
-    # MLflow: mlflow.log_param("embedding_dim", embedding_dim)
-    # MLflow: mlflow.log_param("mlp_hidden_dims", mlp_hidden_dims)
-    # MLflow: mlflow.log_param("dropout", dropout)
-    # MLflow: mlflow.log_param("epochs", epochs)
-    # MLflow: mlflow.log_param("batch_size", batch_size)
-    # MLflow: mlflow.log_param("lr", lr)
-    # MLflow: mlflow.log_param("weight_decay", weight_decay)
-    # MLflow: mlflow.log_param("patience", patience)
-    # MLflow: mlflow.log_param("val_split", val_split)
-    # MLflow: mlflow.log_param("seed", seed)
+    mlflow.log_param("model_type", "neumf")
+    mlflow.log_param("embedding_dim", embedding_dim)
+    mlflow.log_param("mlp_hidden_dims", mlp_hidden_dims)
+    mlflow.log_param("dropout", dropout)
+    mlflow.log_param("epochs", epochs)
+    mlflow.log_param("batch_size", batch_size)
+    mlflow.log_param("lr", lr)
+    mlflow.log_param("weight_decay", weight_decay)
+    mlflow.log_param("patience", patience)
+    mlflow.log_param("val_split", val_split)
+    mlflow.log_param("seed", seed)
 
     _log.info("Lendo dados de treino de '%s'...", input_path)
     train_df: pd.DataFrame = pd.read_parquet(input_path)
@@ -151,7 +153,7 @@ def train_neural(
     recommender.save(str(output_path))
     _log.info("Checkpoint NeuMF salvo em '%s'.", output_path)
 
-    # MLflow: mlflow.log_artifact(str(output_path))
+    mlflow.log_artifact(str(output_path))
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +187,7 @@ def _parse_args() -> argparse.Namespace:
         "--mode",
         type=str,
         choices=["baseline", "neural"],
-        default="baseline",
+        default=settings.model.recommender_type,
         help="Modo de treino: 'baseline' (SVD) ou 'neural' (NeuMF).",
     )
 
@@ -243,7 +245,7 @@ def _parse_args() -> argparse.Namespace:
     neural_group.add_argument(
         "--val-split",
         type=float,
-        default=0.2,
+        default=0.02,
         help="Proporção para validação (NeuMF).",
     )
     return parser.parse_args()
@@ -253,30 +255,34 @@ def main() -> None:
     """Ponto de entrada: delega para o modo de treino seleccionado."""
     args = _parse_args()
 
-    # MLflow: mlflow.set_experiment("neumf-amazon-toys")
-    # MLflow: with mlflow.start_run():
+    if settings.mlflow.tracking_uri:
+        mlflow.set_tracking_uri(settings.mlflow.tracking_uri)
 
-    if args.mode == "baseline":
-        train_svd(
-            input_path=args.input,
-            output_path=args.output,
-            seed=args.seed,
-        )
-    elif args.mode == "neural":
-        train_neural(
-            input_path=args.input,
-            output_path=args.output,
-            seed=args.seed,
-            embedding_dim=args.embedding_dim,
-            mlp_hidden_dims=args.mlp_hidden_dims,
-            dropout=args.dropout,
-            epochs=args.epochs,
-            batch_size=args.batch_size,
-            lr=args.lr,
-            weight_decay=args.weight_decay,
-            patience=args.patience,
-            val_split=args.val_split,
-        )
+    mlflow.set_experiment(settings.mlflow.experiment_name)
+
+    with mlflow.start_run():
+        mlflow.log_param("execution_mode", args.mode)
+        if args.mode == "baseline":
+            train_svd(
+                input_path=args.input,
+                output_path=args.output,
+                seed=args.seed,
+            )
+        elif args.mode == "neural":
+            train_neural(
+                input_path=args.input,
+                output_path=args.output,
+                seed=args.seed,
+                embedding_dim=args.embedding_dim,
+                mlp_hidden_dims=args.mlp_hidden_dims,
+                dropout=args.dropout,
+                epochs=args.epochs,
+                batch_size=args.batch_size,
+                lr=args.lr,
+                weight_decay=args.weight_decay,
+                patience=args.patience,
+                val_split=args.val_split,
+            )
 
 
 if __name__ == "__main__":

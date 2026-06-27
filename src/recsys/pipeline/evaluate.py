@@ -27,7 +27,9 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import mlflow
 
+from recsys.config import settings
 from recsys.metrics.evaluation import map_at_k, ndcg_at_k, precision_at_k, recall_at_k
 from recsys.recommenders.base import BaseRecommender
 
@@ -45,7 +47,7 @@ def calculate_metrics(
     test_df: pd.DataFrame,
     top_k: int,
 ) -> dict[str, float]:
-    """Calcula as métricas para todos os usuários no conjunto de teste.
+    """Calcula as métricas para todos os usuários no conjunto de teste usando processamento em lote.
 
     Args:
         model: Recomendador já treinado.
@@ -61,10 +63,14 @@ def calculate_metrics(
     maps = []
 
     user_true_items = test_df.groupby("user_id")["item_id"].apply(list).to_dict()
+    user_ids = list(user_true_items.keys())
+
+    _log.info("Gerando recomendações em lote para %d usuários...", len(user_ids))
+    all_recommendations = model.recommend_batch(user_ids, top_k=top_k)
 
     for user_id, y_true in user_true_items.items():
         y_true_str = [str(item) for item in y_true]
-        y_pred = model.recommend(user_id=user_id, top_k=top_k)
+        y_pred = all_recommendations.get(user_id, [])
 
         precisions.append(precision_at_k(y_true_str, y_pred, top_k))
         recalls.append(recall_at_k(y_true_str, y_pred, top_k))
@@ -79,6 +85,26 @@ def calculate_metrics(
     }
 
 
+def load_model(model_path: Path) -> BaseRecommender:
+    """Carrega o modelo de recomendação suportando pickle (.pkl) e PyTorch (.pth) dinamicamente.
+
+    Args:
+        model_path: Caminho do modelo serializado.
+
+    Returns:
+        O recomendador carregado.
+    """
+    try:
+        with model_path.open("rb") as f:
+            return pickle.load(f)  # noqa: S301
+    except Exception:
+        _log.info("Falha ao carregar com pickle. Tentando carregar como modelo PyTorch (NeuMF)...")
+        from recsys.recommenders.neural import NeuralRecommender
+        recommender = NeuralRecommender()
+        recommender.load(model_path)
+        return recommender
+
+
 def evaluate(
     model_path: Path,
     data_path: Path,
@@ -89,15 +115,14 @@ def evaluate(
     """Carrega o modelo, avalia no conjunto de teste e salva métricas.
 
     Args:
-        model_path: Caminho do arquivo ``.pkl`` do modelo treinado.
+        model_path: Caminho do arquivo ``.pkl`` ou ``.pth`` do modelo treinado.
         data_path: Caminho do Parquet de teste.
         train_path: Caminho do Parquet de treino (mantido para CLI).
         output_path: Caminho do ``metrics.json`` de saída.
         top_k: Número de recomendações para as métricas.
     """
     _log.info("Carregando modelo de '%s'...", model_path)
-    with model_path.open("rb") as f:
-        model: BaseRecommender = pickle.load(f)  # noqa: S301
+    model = load_model(model_path)
 
     _log.info("Lendo conjunto de teste de '%s'...", data_path)
     test_df: pd.DataFrame = pd.read_parquet(data_path)
@@ -118,6 +143,24 @@ def evaluate(
     _log.info("Métricas salvas em '%s':", output_path)
     for key, value in metrics.items():
         _log.info("  %s: %s", key, value)
+
+    try:
+        if settings.mlflow.tracking_uri:
+            mlflow.set_tracking_uri(settings.mlflow.tracking_uri)
+        
+        if mlflow.active_run():
+            for key, value in metrics.items():
+                if isinstance(value, (int, float)):
+                    mlflow.log_metric(key, float(value))
+        else:
+            mlflow.set_experiment(settings.mlflow.experiment_name)
+            with mlflow.start_run(run_name="evaluation"):
+                mlflow.log_param("evaluate_only", True)
+                for key, value in metrics.items():
+                    if isinstance(value, (int, float)):
+                        mlflow.log_metric(key, float(value))
+    except Exception as e:
+        _log.warning("Falha ao logar no MLflow: %s", e)
 
 
 # ---------------------------------------------------------------------------

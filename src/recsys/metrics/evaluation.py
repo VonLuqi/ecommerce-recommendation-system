@@ -56,7 +56,7 @@ def recall_at_k(y_true: list[str], y_pred: list[str], k: int) -> float:
 def ndcg_at_k(y_true: list[str], y_pred: list[str], k: int) -> float:
     """Calcula o Normalized Discounted Cumulative Gain (NDCG@K).
 
-    Usa a implementação do scikit-learn.
+    Otimizado para relevância binária em Python puro.
 
     Args:
         y_true: Lista de itens relevantes.
@@ -72,16 +72,18 @@ def ndcg_at_k(y_true: list[str], y_pred: list[str], k: int) -> float:
     y_true_set = set(y_true)
     y_pred_k = y_pred[:k]
 
-    all_items = list(y_true_set.union(set(y_pred_k)))
-
-    true_relevance = np.array([1 if item in y_true_set else 0 for item in all_items])
-
-    scores = np.zeros(len(all_items))
+    dcg = 0.0
     for i, item in enumerate(y_pred_k):
-        idx = all_items.index(item)
-        scores[idx] = k - i
+        if item in y_true_set:
+            dcg += 1.0 / np.log2(i + 2)
 
-    return float(ndcg_score([true_relevance], [scores], k=k))
+    if dcg == 0.0:
+        return 0.0
+
+    n_relevant = min(k, len(y_true_set))
+    idcg = sum(1.0 / np.log2(i + 2) for i in range(n_relevant))
+
+    return float(dcg / idcg)
 
 
 def map_at_k(y_true: list[str], y_pred: list[str], k: int) -> float:
