@@ -75,8 +75,8 @@ FROM runtime AS pipeline
 
 USER root
 
-# Instala DVC e git (necessários pra rodar dvc repro)
-RUN /opt/venv/bin/pip install --no-cache-dir "dvc>=3.50" \
+# Instala DVC, git e pytest (necessários pra rodar dvc repro e testes)
+RUN /opt/venv/bin/pip install --no-cache-dir "dvc>=3.50" pytest \
     && apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 

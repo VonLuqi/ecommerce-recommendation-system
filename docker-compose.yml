@@ -28,6 +28,8 @@ services:
         --port 5000
         --backend-store-uri sqlite:///mlruns/mlflow.db
         --default-artifact-root /app/mlruns/artifacts
+    environment:
+      MLFLOW_SERVER_ALLOWED_HOSTS: "*"
     networks:
       - default
     ports:
@@ -56,6 +58,8 @@ services:
     volumes:
       - ./data:/app/data
       - ./models:/app/models
+      - ./src:/app/src
+      - ./configs:/app/configs
     env_file:
       - .env
     environment:
@@ -78,6 +82,11 @@ services:
     volumes:
       - ./data:/app/data
       - ./models:/app/models
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./tests:/app/tests
+      - ./dvc.yaml:/app/dvc.yaml
+      - ./params.yaml:/app/params.yaml
     env_file:
       - .env
     environment:

@@ -50,6 +50,7 @@ class ModelSettings(BaseSettings):
     top_k: int = Field(default=10, ge=1, alias="TOP_K")
     random_seed: int = Field(default=42, alias="RANDOM_SEED")
     models_path: Path = Field(default=Path("models"), alias="MODELS_PATH")
+    recommender_type: str = Field(default="baseline", alias="RECOMMENDER_TYPE")
 
 
 class MLflowSettings(BaseSettings):
@@ -61,7 +62,7 @@ class MLflowSettings(BaseSettings):
         default="mlruns", alias="MLFLOW_TRACKING_URI"
     )
     experiment_name: str = Field(
-        default="neumf-amazon-toys", alias="MLFLOW_EXPERIMENT_NAME"
+        default="neumf-instacart", alias="MLFLOW_EXPERIMENT_NAME"
     )
 
 

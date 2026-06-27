@@ -9,9 +9,8 @@ project:
 data:
   raw_path: data/raw
   processed_path: data/processed
-  # Dataset: Amazon Reviews 2023 — subset Toys_and_Games
-  # Carregamento implementado na Etapa 4 (Pedro)
-  dataset_name: Toys_and_Games
+  # Dataset: Instacart Market Basket Analysis
+  dataset_name: instacart
   kcore_threshold: 5  # filtro k-core: mínimo de interações por usuário/item
 
 model:
