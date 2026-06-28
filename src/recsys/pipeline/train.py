@@ -31,8 +31,8 @@ import logging
 import pickle
 from pathlib import Path
 
-import pandas as pd
 import mlflow
+import pandas as pd
 
 from recsys.config import settings
 from recsys.utils.seeds import fix_seeds

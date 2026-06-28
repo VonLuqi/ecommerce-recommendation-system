@@ -145,19 +145,19 @@
 ---
 
 ## Bloco 9 — Documentação Técnica
-**Responsável: Eduardo** | Fase: Pendente 🔲
+**Responsável: Eduardo** | Fase: Concluída ✅
 
 | # | Item | Status | Observações |
 |---|---|---|---|
-| 9.1 | Escrever o Model Card | 🔲 | Criar `docs/model_card.md` com arquitetura e limitações |
-| 9.2 | Documentar performance do modelo | 🔲 | Adicionar tabela comparativa final baseline vs NeuMF |
-| 9.3 | Documentar limitações | 🔲 | |
-| 9.4 | Documentar vieses | 🔲 | |
-| 9.5 | Finalizar README com instruções de setup | 🔲 | Complementar com uso do `uv` e detalhes do Instacart |
-| 9.6 | Incluir instruções de treino | 🔲 | |
-| 9.7 | Incluir instruções de DVC | 🔲 | |
-| 9.8 | Incluir instruções de Docker | 🔲 | |
-| 9.9 | Incluir instruções de MLflow | 🔲 | |
+| 9.1 | Escrever o Model Card | ✅ | `docs/model_card.md` criado com arquitetura NeuMF, performance, limitações e vieses |
+| 9.2 | Documentar performance do modelo | ✅ | Tabela comparativa NeuMF vs SVD (NDCG@10, MAP@10, Precision@10, Recall@10) no model_card.md |
+| 9.3 | Documentar limitações | ✅ | Seção 4 do model_card.md: cold-start de usuário/item, itens já comprados, escalabilidade |
+| 9.4 | Documentar vieses | ✅ | Seção 5 do model_card.md: viés de popularidade, demográfico, temporal e de seleção |
+| 9.5 | Finalizar README com instruções de setup | ✅ | README atualizado com Poetry e uv, resultados do NeuMF e referência ao model_card.md |
+| 9.6 | Incluir instruções de treino | ✅ | Seção Pipeline DVC com detalhes de cada etapa e `params.yaml` no README |
+| 9.7 | Incluir instruções de DVC | ✅ | Seção Pipeline DVC no README: `dvc repro`, `dvc metrics show`, `dvc status` |
+| 9.8 | Incluir instruções de Docker | ✅ | Seção Docker no README: compose up mlflow, run train, run pipeline |
+| 9.9 | Incluir instruções de MLflow | ✅ | Seção MLflow no README: UI local, script register_model.py e verificação do Model Registry |
 
 ---
 
@@ -190,9 +190,9 @@
 | 6 — Baselines | Victor | 5 | 0 | 0 |
 | 7 — Modelo neural | Victor | 7 | 0 | 0 |
 | 8 — Tracking | Eduardo | 8 | 0 | 0 |
-| 9 — Documentação | Eduardo | 0 | 9 | 0 |
+| 9 — Documentação | Eduardo | 9 | 0 | 0 |
 | 10 — Validação final | Eduardo | 9 | 0 | 0 |
-| **Total** | | **81** | **9** | **0** |
+| **Total** | | **90** | **0** | **0** |
 
 
 ---
@@ -266,10 +266,10 @@
 
 | # | Item | Status | Observações |
 |---|---|---|---|
-| 5.1 | Relatório técnico final | 🔲 | Falta consolidar |
-| 5.2 | Slides de apresentação | 🔲 | |
-| 5.3 | README final com instruções de execução | 🔲 | Falta expandir com instruções de MLflow e NeuMF |
-| 5.4 | Checklist de entrega do Tech Challenge | 🔲 | |
+| 5.1 | Relatório técnico final | ✅ | `docs/model_card.md` criado com toda a documentação técnica do modelo |
+| 5.2 | Slides de apresentação | 🔲 | A ser preparado pela equipe para o vídeo STAR |
+| 5.3 | README final com instruções de execução | ✅ | README atualizado com resultados NeuMF, instruções de DVC, Docker, MLflow e uv |
+| 5.4 | Checklist de entrega do Tech Challenge | ✅ | Checklist atualizado e reflete o status real do repositório |
 
 ---
 
@@ -281,5 +281,5 @@
 | 2 — Dados | 7 | 1 | 0 |
 | 3 — Modelagem | 6 | 1 | 0 |
 | 4 — MLOps | 6 | 1 | 0 |
-| 5 — Entrega | 0 | 4 | 0 |
-| **Total** | **34** | **7** | **0** |
+| 5 — Entrega | 3 | 1 | 0 |
+| **Total** | **37** | **4** | **0** |

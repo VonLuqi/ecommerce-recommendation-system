@@ -1,11 +1,11 @@
 # E-Commerce Recommendation System
 
-![Fase](https://img.shields.io/badge/fase-pipeline-blue)
+![Fase](https://img.shields.io/badge/fase-entrega-blue)
 ![Stack](https://img.shields.io/badge/stack-PyTorch%20%7C%20MLflow%20%7C%20DVC%20%7C%20Docker-informational)
-![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
-![Testes](https://img.shields.io/badge/testes-33%20passando-brightgreen)
+![Status](https://img.shields.io/badge/status-production-brightgreen)
+![Testes](https://img.shields.io/badge/testes-40%20passando-brightgreen)
 
-Sistema de recomendação de produtos para e-commerce baseado no histórico de compras do usuário, implementado com redes neurais do tipo embedding-based (NeuMF). Dataset: **Instacart Market Basket**.
+Sistema de recomendação de produtos para e-commerce baseado no histórico de compras do usuário, implementado com redes neurais do tipo embedding-based (**NeuMF**). Dataset: **Instacart Market Basket Analysis**.
 
 ---
 
@@ -23,15 +23,28 @@ Dado o histórico de compras de um usuário, ranquear produtos com maior probabi
 | Rastreamento de experimentos | MLflow |
 | Versionamento de dados | DVC |
 | Empacotamento | Docker |
-| Dependências | Poetry |
+| Dependências | Poetry / uv |
 | Linguagem | Python 3.11+ |
+
+---
+
+## Resultados
+
+O modelo **NeuMF** (Neural Matrix Factorization) foi treinado por 20 épocas e superou o baseline SVD em **mais de 3×** em NDCG@10:
+
+| Modelo                   | NDCG@10 | MAP@10 | Precision@10 | Recall@10 |
+|:-------------------------|:-------:|:------:|:------------:|:---------:|
+| **NeuMF Final (20 épocas)** | **7.10%** | **2.97%** | **5.63%** | **5.24%** |
+| Baseline SVD             | 2.17%   | 0.73%  | 2.02%        | 2.59%     |
+
+> Para detalhes completos sobre a arquitetura, limitações e vieses, veja o [Model Card](docs/model_card.md).
 
 ---
 
 ## Pré-requisitos
 
 - Python 3.11+
-- [Poetry](https://python-poetry.org/docs/#installation)
+- [Poetry](https://python-poetry.org/docs/#installation) **ou** [uv](https://docs.astral.sh/uv/)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (para execução via container)
 - Conta no [Kaggle](https://www.kaggle.com) (para baixar o dataset)
 
@@ -41,29 +54,39 @@ Dado o histórico de compras de um usuário, ranquear produtos com maior probabi
 
 ### 1. Clonar o repositório
 
-```powershell
+```bash
 git clone <url-do-repositorio>
 cd ecommerce-recommendation-system
 ```
 
 ### 2. Instalar dependências
 
-```powershell
+Com **Poetry**:
+```bash
 poetry install
+```
+
+Com **uv** (alternativa mais rápida):
+```bash
+uv sync
 ```
 
 ### 3. Configurar variáveis de ambiente
 
-```powershell
-copy .env.example .env
+```bash
+cp .env.example .env
 ```
 
 Edite o `.env` se necessário (os valores padrão funcionam para desenvolvimento local).
 
 ### 4. Validar o ambiente
 
-```powershell
+```bash
+# Com Poetry
 poetry run python scripts/validate_env.py
+
+# Com uv
+uv run python scripts/validate_env.py
 ```
 
 ---
@@ -89,7 +112,7 @@ data/
 
 ---
 
-## Pipeline DVC (local)
+## Pipeline DVC
 
 O pipeline é orquestrado pelo DVC e executa 4 etapas em sequência:
 
@@ -99,28 +122,22 @@ preprocess → feature_eng → train → evaluate
 
 ### Rodar o pipeline completo
 
-```powershell
+```bash
+# Com Poetry
 poetry run dvc repro
+
+# Com uv
+uv run dvc repro
 ```
 
 O DVC detecta automaticamente o que mudou e só re-executa as etapas necessárias.
 
 ### Ver as métricas
 
-```powershell
+```bash
 poetry run dvc metrics show
-```
-
-### Publicar os dados no remote DVC
-
-```powershell
-poetry run dvc push
-```
-
-### Baixar os dados de outro ambiente
-
-```powershell
-poetry run dvc pull
+# ou
+uv run dvc metrics show
 ```
 
 ### Detalhes das etapas
@@ -130,18 +147,22 @@ poetry run dvc pull
 | `preprocess` | `recsys/pipeline/preprocess.py` | `data/raw/` | `data/interim/preprocessed.parquet` |
 | `feature_eng` | `recsys/pipeline/feature_eng.py` | `preprocessed.parquet` | `train.parquet`, `test.parquet` |
 | `train` | `recsys/pipeline/train.py` | `train.parquet` | `models/model.pkl` |
-| `evaluate` | `recsys/pipeline/evaluate.py` | `model.pkl` + `test.parquet` + `train.parquet` | `metrics.json` |
+| `evaluate` | `recsys/pipeline/evaluate.py` | `model.pkl` + `test.parquet` | `metrics.json` |
 
-### Resultados atuais (baseline de popularidade)
+### Alternar entre modelos
 
+O modo de treino é controlado em [`params.yaml`](params.yaml):
+
+```yaml
+model:
+  recommender_type: neural   # "baseline" para SVD, "neural" para NeuMF
+  embedding_dim: 8
+  epochs: 20
+  batch_size: 1024
+  lr: 0.01
+  dropout: 0.2
+  patience: 3
 ```
-hr_at_10        0.038331   → 3,8% das interações de teste têm o item no top-10
-coverage_at_10  0.000216   → o modelo cobre 0,02% do catálogo (sempre recomenda os mesmos 10 itens)
-num_users       199646
-num_interações  2657430
-```
-
-> O `Coverage@10` baixo é esperado: o `PopularityRecommender` recomenda os mesmos 10 itens para todos os usuários. O modelo neural (NeuMF) deve superar estes números.
 
 ---
 
@@ -151,41 +172,29 @@ O projeto tem um `Dockerfile` multi-stage (builder → runtime → pipeline) e u
 
 > **Pré-requisito:** os dados já devem estar em `data/processed/` (rode `dvc repro` antes, ou `dvc pull`).
 
-### 1. Build da imagem
+### 1. Subir o MLflow Server
 
-```powershell
-docker build --target runtime -t recsys:latest .
-```
-
-O PyTorch é instalado com o índice CPU-only, mantendo a imagem em ~500 MB.
-
-### 2. Subir o MLflow Server
-
-```powershell
+```bash
 docker compose up mlflow -d
 ```
 
-Acesse a UI em `http://localhost:5000`.
+Acesse a UI em `http://localhost:5001`.
 
-### 3. Rodar o treino via container
+### 2. Rodar o treino via container
 
-```powershell
+```bash
 docker compose run --rm train
 ```
 
-Lê `data/processed/train.parquet` e salva `models/model.pkl` via volume do host.
+### 3. Rodar o pipeline completo com DVC dentro do container
 
-### 4. Rodar o pipeline completo com DVC dentro do container
-
-```powershell
+```bash
 docker compose run --rm pipeline
 ```
 
-Executa `dvc repro` dentro do container — integração Docker + DVC.
+### 4. Derrubar os serviços
 
-### 5. Derrubar os serviços
-
-```powershell
+```bash
 docker compose down
 ```
 
@@ -193,44 +202,70 @@ docker compose down
 
 ## MLflow
 
-O MLflow é usado para rastrear experimentos, logar métricas e registrar modelos no Model Registry.
+O MLflow rastreia experimentos, loga métricas e registra modelos no Model Registry.
 
 ### Subir o servidor local
 
-```powershell
+```bash
 docker compose up mlflow -d
 ```
 
-Acesse `http://localhost:5000` para ver os experimentos, comparar runs e gerenciar modelos.
+Acesse `http://localhost:5001` para ver experimentos, comparar runs e gerenciar modelos.
 
-### Configurar o tracking URI (local sem Docker)
+### Registrar e promover o modelo para Production
 
-```powershell
-# No .env
-MLFLOW_TRACKING_URI=mlruns
+Após executar o pipeline, rode o script de registro:
+
+```bash
+# Garante que o servidor MLflow está rodando primeiro
+docker compose up mlflow -d
+
+# Registra e promove o NeuMF para Production
+uv run python scripts/register_model.py
+# ou
+poetry run python scripts/register_model.py
 ```
 
-> A integração completa com logging de params, métricas e artefatos será implementada na Etapa 8.
+O script automaticamente:
+1. Encapsula o modelo em um wrapper `mlflow.pyfunc.PythonModel`
+2. Registra sob o nome `NeuMF-Instacart` no Model Registry
+3. Promove a última versão para o estágio **Production**
+
+### Verificar o modelo em Production
+
+```bash
+uv run python -c "
+import mlflow
+mlflow.set_tracking_uri('http://localhost:5001')
+from mlflow.tracking import MlflowClient
+client = MlflowClient()
+print([(mv.name, mv.version, mv.current_stage)
+       for mv in client.get_latest_versions('NeuMF-Instacart')])
+"
+```
 
 ---
 
 ## Comandos Úteis
 
-```powershell
+```bash
 # Rodar testes
 poetry run pytest
+# ou
+uv run pytest
 
 # Lint
 poetry run ruff check src tests
+uv run ruff check src tests
 
 # Validar ambiente
 poetry run python scripts/validate_env.py
 
 # Testar uma recomendação manualmente
-poetry run python -c "
+uv run python -c "
 import pickle
 model = pickle.load(open('models/model.pkl', 'rb'))
-print(model.recommend(user_id='1', top_k=5))
+print(model.recommend(user_id=1, top_k=5))
 "
 
 # Ver métricas do pipeline
@@ -240,7 +275,7 @@ poetry run dvc metrics show
 poetry run dvc status
 ```
 
-Com `make` (Linux/macOS/Git Bash):
+Com `make` (Linux/macOS):
 
 ```bash
 make install     # instala dependências
@@ -262,36 +297,49 @@ ecommerce-recommendation-system/
 ├── Makefile                        # Atalhos para tarefas comuns
 ├── dvc.yaml                        # Pipeline DVC (4 etapas)
 ├── dvc.lock                        # Hashes dos artefatos (gerado por dvc repro)
+├── params.yaml                     # Hiperparâmetros do pipeline (lido pelo DVC)
 ├── metrics.json                    # Métricas do último evaluate
 ├── pyproject.toml                  # Dependências e configuração
 ├── ruff.toml                       # Configuração do linter
 ├── .env.example                    # Variáveis de ambiente (copie para .env)
+├── docs/
+│   ├── model_card.md               # Model Card: arquitetura, performance e vieses
+│   ├── decisions.md                # ADRs: decisões arquiteturais (ADR-001 a ADR-011)
+│   ├── kickoff.md                  # Definição do problema e divisão de responsabilidades
+│   └── reports/                    # Walkthroughs de execução e logging
 ├── data/
 │   ├── raw/                        # CSVs do Instacart (gerenciados pelo DVC)
 │   ├── interim/                    # Dados pré-processados
 │   └── processed/                  # Features prontas para treino
-├── models/                         # Modelos serializados (.pkl)
+├── models/                         # Modelos serializados (.pkl / .pth)
 ├── scripts/
-│   ├── setup.ps1                   # Setup automático para Windows
+│   ├── register_model.py           # Registra e promove o modelo no MLflow
 │   └── validate_env.py             # Valida o ambiente de desenvolvimento
 ├── src/recsys/
 │   ├── config/settings.py          # Configuração central (Pydantic Settings)
 │   ├── data/
 │   │   ├── loader.py               # Interface abstrata BaseInteractionLoader
 │   │   └── instacart_loader.py     # Carregador concreto do Instacart
+│   ├── models/
+│   │   └── neural_net.py           # Arquitetura NeuMF (PyTorch nn.Module)
 │   ├── pipeline/
 │   │   ├── preprocess.py           # Etapa 1: limpeza + k-core filtering
 │   │   ├── feature_eng.py          # Etapa 2: encode IDs + split treino/teste
-│   │   ├── train.py                # Etapa 3: treino do modelo baseline
-│   │   └── evaluate.py             # Etapa 4: HR@K e Coverage@K
+│   │   ├── train.py                # Etapa 3: treino (SVD ou NeuMF) + MLflow logging
+│   │   └── evaluate.py             # Etapa 4: métricas + MLflow logging
 │   ├── recommenders/
 │   │   ├── base.py                 # Interface Strategy BaseRecommender
-│   │   └── popularity.py           # Baseline: popularidade global
+│   │   ├── baseline.py             # SVDRecommender (scikit-learn TruncatedSVD)
+│   │   ├── popularity.py           # PopularityRecommender (baseline)
+│   │   └── neural.py               # NeuralRecommender (NeuMF em PyTorch)
+│   ├── metrics/
+│   │   └── evaluation.py           # Precision@K, Recall@K, NDCG@K, MAP@K
 │   └── utils/seeds.py              # Fixação de seeds globais
 ├── tests/
 │   ├── test_data_pipeline.py       # Testes do loader e funções de pipeline
-│   ├── test_recommenders.py        # Testes dos recomendadores
-│   └── test_settings.py            # Testes de configuração
+│   ├── test_recommenders.py        # Testes dos recomendadores (Popularity, SVD)
+│   ├── test_neural_recommender.py  # Testes do NeuralRecommender e SVD em lote
+│   └── test_settings.py            # Testes de configuração e seeds
 └── configs/default.yaml            # Parâmetros padrão do projeto
 ```
 
@@ -327,5 +375,5 @@ chore:     build, dependências, configuração
 
 ## Referências
 
-- He, X. et al. (2017). *Neural Collaborative Filtering*. WWW '17.
+- He, X. et al. (2017). *Neural Collaborative Filtering*. WWW '17. [arXiv:1708.05031](https://arxiv.org/abs/1708.05031)
 - Instacart. *Instacart Market Basket Analysis*. Kaggle, 2017.

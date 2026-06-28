@@ -24,10 +24,9 @@ import json
 import logging
 import pickle
 from pathlib import Path
-from typing import Any
 
-import pandas as pd
 import mlflow
+import pandas as pd
 
 from recsys.config import settings
 from recsys.metrics.evaluation import map_at_k, ndcg_at_k, precision_at_k, recall_at_k
@@ -147,7 +146,7 @@ def evaluate(
     try:
         if settings.mlflow.tracking_uri:
             mlflow.set_tracking_uri(settings.mlflow.tracking_uri)
-        
+
         if mlflow.active_run():
             for key, value in metrics.items():
                 if isinstance(value, (int, float)):

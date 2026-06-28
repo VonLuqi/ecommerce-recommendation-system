@@ -6,7 +6,6 @@ Implementa funções para Precision@K, Recall@K, NDCG@K e MAP@K.
 from __future__ import annotations
 
 import numpy as np
-from sklearn.metrics import ndcg_score
 
 
 def precision_at_k(y_true: list[str], y_pred: list[str], k: int) -> float:
