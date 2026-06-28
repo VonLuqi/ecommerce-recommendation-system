@@ -606,19 +606,17 @@ class NeuralRecommender(BaseRecommender):
             return results
 
         # Processa usuários em blocos para evitar estourar a memória (CPU ou GPU)
-        batch_size = 16
+        batch_size = 64
         num_items = len(self._item_idx)
 
         for i in range(0, len(known_users), batch_size):
             batch_u = known_users[i : i + batch_size]
             u_indices = [self._user_idx[u] for u in batch_u]
 
-            # Expande tensores: repete usuários para cada item, e repete a lista de todos os itens
-            user_expanded = np.repeat(u_indices, num_items)
-            item_expanded = np.tile(np.arange(num_items), len(batch_u))
-
-            user_tensor = torch.tensor(user_expanded, dtype=torch.long, device=self.device)
-            item_tensor = torch.tensor(item_expanded, dtype=torch.long, device=self.device)
+            # Expande tensores diretamente no dispositivo de destino, evitando overhead de alocação no host
+            # e transferência de grandes volumes de dados via barramento CPU-GPU
+            user_tensor = torch.tensor(u_indices, dtype=torch.long, device=self.device).repeat_interleave(num_items)
+            item_tensor = self._all_item_ids_tensor.repeat(len(batch_u))
 
             with torch.no_grad():
                 scores = self._model(user_tensor, item_tensor)
@@ -752,7 +750,7 @@ class NeuralRecommender(BaseRecommender):
         for user_ids, item_ids, ratings in loader:
             user_ids = user_ids.to(self.device)
             item_ids = item_ids.to(self.device)
-            ratings = ratings.to(self.device)
+            ratings = ratings.to(device=self.device, dtype=torch.float32)
 
             if train:
                 optimizer.zero_grad()
