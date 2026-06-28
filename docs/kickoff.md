@@ -182,10 +182,13 @@ Justificativa técnica:
 
 **Arquitetura resumida:**
 
-```text
-Usuário ID ─────┬──► Embedding_GMF ──► Produto elementar (GMF)  ─┐
-                │                                                   ├──► Camada de fusão ──► Sigmoid ──► P(interação)
-Item ID ────────┴──► Embedding_MLP ──► Camadas densas (MLP)     ─┘
+```mermaid
+flowchart LR
+    U["Usuário ID"] & I["Item ID"] --> GMF["Embedding GMF\nProduto elementar"]
+    U & I --> MLP["Embedding MLP\nCamadas densas"]
+    GMF & MLP --> FUSE["Camada de fusão"]
+    FUSE --> SIG["Sigmoid"]
+    SIG --> OUT["P(interação)"]
 ```
 
 **Justificativa técnica:**
@@ -215,11 +218,15 @@ A equipe é composta por 4 integrantes. A divisão segue os blocos do [plano cro
 
 ### 7.1 Dependências críticas entre integrantes
 
-```
-Eu (blocos 1–3)
-    └──► Pedro (blocos 4–5)  ← depende de: estrutura de código e ambiente prontos
-              └──► Victor (blocos 6–7) ← depende de: dados processados e DVC configurado
-                        └──► Eduardo (blocos 8–10) ← depende de: modelo treinado e métricas geradas
+```mermaid
+flowchart TD
+    A["Eu — Blocos 1-3\nSetup, código base, ambiente"]
+    B["Pedro — Blocos 4-5\nDados, DVC, Docker"]
+    C["Victor — Blocos 6-7\nBaselines, NeuMF, avaliação"]
+    D["Eduardo — Blocos 8-10\nMLflow, Model Card, validação final"]
+    A -->|"estrutura e ambiente prontos"| B
+    B -->|"dados processados e DVC configurado"| C
+    C -->|"modelo treinado e métricas geradas"| D
 ```
 
 > **Risco de sequenciamento:** Blocos têm dependências lineares. Atrasos em blocos 1–3 propagam para toda a cadeia. A revisão do threshold de rating (bloco 4) é pré-requisito para o treino do modelo (bloco 7).

@@ -116,9 +116,15 @@ data/
 
 O pipeline é orquestrado pelo DVC e executa 4 etapas em sequência:
 
+```mermaid
+flowchart LR
+    A["preprocess\nCSVs brutos → parquet filtrado"]
+    B["feature_eng\nEncode IDs + split 80/20"]
+    C["train\nSVD ou NeuMF → model.pkl/.pth"]
+    D["evaluate\nNDCG@10, MAP@10, Precision, Recall"]
+    A --> B --> C --> D
 ```
-preprocess → feature_eng → train → evaluate
-```
+
 
 ### Rodar o pipeline completo
 

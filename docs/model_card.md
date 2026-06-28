@@ -18,32 +18,47 @@ Dado o histórico de compras de um usuário no dataset Instacart, o modelo ranqu
 
 O modelo implementa a arquitetura **NeuMF (Neural Matrix Factorization)** proposta por He et al. (2017), que combina dois ramos paralelos em PyTorch:
 
+```mermaid
+flowchart TB
+    subgraph Entradas
+        U["User ID"]
+        I["Item ID"]
+    end
+
+    subgraph GMF["Ramo GMF — Generalized Matrix Factorization"]
+        EU["Embedding Usuário\n(dim=8)"]
+        EI["Item Embedding\n(dim=8)"]
+        HAD["Produto Elementar\n(Hadamard)"]
+        EU --> HAD
+        EI --> HAD
+    end
+
+    subgraph MLP["Ramo MLP — Multi-Layer Perceptron"]
+        EU2["Embedding Usuário\n(dim=8)"]
+        EI2["Embedding Item\n(dim=8)"]
+        CONCAT["Concatenação\n(dim=16)"]
+        L1["Linear 16→256\nReLU + Dropout(0.2)"]
+        L2["Linear 256→128\nReLU + Dropout(0.2)"]
+        L3["Linear 128→64"]
+        EU2 --> CONCAT
+        EI2 --> CONCAT
+        CONCAT --> L1 --> L2 --> L3
+    end
+
+    U --> EU & EU2
+    I --> EI & EI2
+
+    FUSE["Concatenação GMF+MLP\n(dim=8+64=72)"]
+    HAD --> FUSE
+    L3  --> FUSE
+
+    OUT["Linear 72→1\nSigmoid"]
+    FUSE --> OUT
+
+    SCORE["Score de relevância\n[0, 1]"]
+    OUT --> SCORE
 ```
-                    ┌─────────────────────────────────────────────┐
-                    │                   NeuMF                     │
-                    │                                             │
-          ┌─────────┴───────────┐           ┌────────────────────┤
-          │     Ramo GMF        │           │     Ramo MLP       │
-          │                     │           │                    │
-  User ──►│ Embedding (dim=8)   │   User ──►│ Embedding (dim=8)  │
-  Item ──►│ Embedding (dim=8)   │   Item ──►│ Embedding (dim=8)  │
-          │                     │           │                    │
-          │ Produto elem-a-elem │           │ Concatenação       │
-          │   (Hadamard)        │           │ Linear(16→256)     │
-          │                     │           │ ReLU + Dropout(0.2)│
-          │                     │           │ Linear(256→128)    │
-          │                     │           │ ReLU + Dropout(0.2)│
-          │                     │           │ Linear(128→64)     │
-          └─────────┬───────────┘           └────────────┬───────┘
-                    │                                    │
-                    └──────────── Concatenação ──────────┘
-                                       │
-                              Linear(72 → 1)
-                                       │
-                                   Sigmoid
-                                       │
-                              Score de relevância [0, 1]
-```
+
 
 **Parâmetros de treinamento utilizados na versão de produção:**
 
