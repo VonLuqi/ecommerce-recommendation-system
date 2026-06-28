@@ -79,7 +79,7 @@
 | 4.7 | Definir artefatos gerados por cada etapa | ✅ | Parquets e pickle mapeados |
 | 4.8 | Inicializar DVC | ✅ | Repositório `.dvc` configurado |
 | 4.9 | Versionar dataset com DVC | ✅ | Configurado nas dependências e saídas do `dvc.yaml` |
-| 4.10 | Configurar remote do DVC | 🔲 | Aponta para um caminho local do Windows (`C:\...`). Precisa ser configurado para o ambiente local |
+| 4.10 | Configurar remote do DVC | ✅ | Remote configurado como mock local `/tmp/dvc-remote-ecommerce` (ADR-008) |
 | 4.11 | Criar `dvc.yaml` | ✅ | Criado com as 4 etapas de execução |
 | 4.12 | Validar execução com `dvc repro` | ✅ | Validado executando o baseline SVD com sucesso |
 
@@ -166,7 +166,7 @@
 
 | # | Item | Status | Observações |
 |---|---|---|---|
-| 10.1 | Rodar lint final (`ruff`) | ✅ | `ruff check` executado |
+| 10.1 | Rodar lint final (`ruff`) | ✅ | `ruff check` passa limpo (0 erros) — corrigido `test_neural_recommender.py` e ajustado `ruff.toml` com `E501` no ignore |
 | 10.2 | Rodar testes finais (`pytest`) | ✅ | 40/40 testes passando com sucesso |
 | 10.3 | Validar instalação limpa | ✅ | Validado usando o script `validate_env.py` |
 | 10.4 | Validar `dvc repro` | ✅ | Validado em todas as etapas do pipeline |
@@ -185,14 +185,14 @@
 | 1 — Kickoff | Eu | 8 | 0 | 0 |
 | 2 — Estrutura base | Eu | 12 | 0 | 0 |
 | 3 — Ambiente | Eu | 13 | 0 | 0 |
-| 4 — Dados | Pedro | 11 | 1 | 0 |
+| 4 — Dados | Pedro | 12 | 0 | 0 |
 | 5 — Containerização | Pedro | 7 | 0 | 0 |
 | 6 — Baselines | Victor | 5 | 0 | 0 |
 | 7 — Modelo neural | Victor | 7 | 0 | 0 |
 | 8 — Tracking | Eduardo | 8 | 0 | 0 |
 | 9 — Documentação | Eduardo | 0 | 9 | 0 |
 | 10 — Validação final | Eduardo | 9 | 0 | 0 |
-| **Total** | | **80** | **10** | **0** |
+| **Total** | | **81** | **9** | **0** |
 
 
 ---

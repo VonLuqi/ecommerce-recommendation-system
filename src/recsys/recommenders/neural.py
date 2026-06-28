@@ -18,10 +18,10 @@ import logging
 from pathlib import Path
 from typing import Any
 
+import mlflow
 import numpy as np
 import pandas as pd
 import torch
-import mlflow
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
 
@@ -68,7 +68,7 @@ class _NegativeSamplingCollate:
     Evita instanciar todas as amostras negativas em memória de uma única vez.
     """
 
-    def __init__(self, user_pos: list[set[int]], num_items: int, num_negatives: int = 4):
+    def __init__(self, user_pos: list[set[int]], num_items: int, num_negatives: int = 4) -> None:
         self.user_pos = user_pos
         self.num_items = num_items
         self.num_negatives = num_negatives
@@ -84,7 +84,7 @@ class _NegativeSamplingCollate:
         ratings = np.empty(total_len, dtype=np.float32)
 
         # Preenche os positivos
-        for idx, (u, i, r) in enumerate(batch):
+        for idx, (u, i, _r) in enumerate(batch):
             users[idx] = u
             items[idx] = i
             ratings[idx] = 1.0
@@ -307,7 +307,7 @@ class NeuralRecommender(BaseRecommender):
 
         # Cria lista de sets para itens positivos de cada usuário
         user_pos = [set() for _ in range(num_users)]
-        for u, i in zip(user_ids, item_ids):
+        for u, i in zip(user_ids, item_ids, strict=False):
             user_pos[u].add(i)
 
         # Conta positivos por usuário
@@ -435,7 +435,7 @@ class NeuralRecommender(BaseRecommender):
 
         # Cria lista de sets com os positivos de cada usuário (para verificação rápida de negativos)
         user_pos = [set() for _ in range(num_users)]
-        for u, i in zip(user_ids_mapped, item_ids_mapped):
+        for u, i in zip(user_ids_mapped, item_ids_mapped, strict=False):
             user_pos[u].add(i)
 
         # --- Datasets e DataLoaders de Validação (negativos fixos pré-gerados) ---

@@ -6,7 +6,6 @@ sem depender do dataset baixado.
 
 from __future__ import annotations
 
-import pickle
 import textwrap
 from pathlib import Path
 
@@ -16,7 +15,6 @@ import pytest
 from recsys.data.instacart_loader import InstacartLoader
 from recsys.pipeline.feature_eng import encode_ids
 from recsys.pipeline.preprocess import apply_kcore
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

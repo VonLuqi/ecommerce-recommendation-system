@@ -20,6 +20,7 @@ select = ["E", "W", "F", "I", "N", "UP", "ANN", "S", "B", "C4", "SIM"]
 
 ignore = [
     "ANN401",  # Dynamically typed expressions (Any) are disallowed
+    "E501",    # Line too long — ruff format cuida do código; docstrings/comentários são livres
 ]
 
 [lint.per-file-ignores]
