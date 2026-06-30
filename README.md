@@ -17,14 +17,14 @@ Dado o histórico de compras de um usuário, ranquear produtos com maior probabi
 
 ## Stack Tecnológica
 
-| Camada | Tecnologia |
-|---|---|
-| Modelagem | PyTorch, Scikit-Learn |
-| Rastreamento de experimentos | MLflow |
-| Versionamento de dados | DVC |
-| Empacotamento | Docker |
-| Dependências | Poetry / uv |
-| Linguagem | Python 3.11+ |
+| Camada                       | Tecnologia            |
+| ---------------------------- | --------------------- |
+| Modelagem                    | PyTorch, Scikit-Learn |
+| Rastreamento de experimentos | MLflow                |
+| Versionamento de dados       | DVC                   |
+| Empacotamento                | Docker                |
+| Dependências                | Poetry / uv           |
+| Linguagem                    | Python 3.11+          |
 
 ---
 
@@ -32,10 +32,10 @@ Dado o histórico de compras de um usuário, ranquear produtos com maior probabi
 
 O modelo **NeuMF** (Neural Matrix Factorization) foi treinado por 20 épocas e superou o baseline SVD em **mais de 3×** em NDCG@10:
 
-| Modelo                   | NDCG@10 | MAP@10 | Precision@10 | Recall@10 |
-|:-------------------------|:-------:|:------:|:------------:|:---------:|
+| Modelo                             |     NDCG@10     |     MAP@10     |  Precision@10  |    Recall@10    |
+| :--------------------------------- | :-------------: | :-------------: | :-------------: | :-------------: |
 | **NeuMF Final (20 épocas)** | **7.10%** | **2.97%** | **5.63%** | **5.24%** |
-| Baseline SVD             | 2.17%   | 0.73%  | 2.02%        | 2.59%     |
+| Baseline SVD                       |      2.17%      |      0.73%      |      2.02%      |      2.59%      |
 
 > Para detalhes completos sobre a arquitetura, limitações e vieses, veja o [Model Card](docs/model_card.md).
 
@@ -62,11 +62,13 @@ cd ecommerce-recommendation-system
 ### 2. Instalar dependências
 
 Com **Poetry**:
+
 ```bash
 poetry install
 ```
 
 Com **uv** (alternativa mais rápida):
+
 ```bash
 uv sync
 ```
@@ -125,7 +127,6 @@ flowchart LR
     A --> B --> C --> D
 ```
 
-
 ### Rodar o pipeline completo
 
 ```bash
@@ -148,12 +149,12 @@ uv run dvc metrics show
 
 ### Detalhes das etapas
 
-| Etapa | Script | Entrada | Saída |
-|---|---|---|---|
-| `preprocess` | `recsys/pipeline/preprocess.py` | `data/raw/` | `data/interim/preprocessed.parquet` |
-| `feature_eng` | `recsys/pipeline/feature_eng.py` | `preprocessed.parquet` | `train.parquet`, `test.parquet` |
-| `train` | `recsys/pipeline/train.py` | `train.parquet` | `models/model.pkl` |
-| `evaluate` | `recsys/pipeline/evaluate.py` | `model.pkl` + `test.parquet` | `metrics.json` |
+| Etapa           | Script                             | Entrada                          | Saída                                |
+| --------------- | ---------------------------------- | -------------------------------- | ------------------------------------- |
+| `preprocess`  | `recsys/pipeline/preprocess.py`  | `data/raw/`                    | `data/interim/preprocessed.parquet` |
+| `feature_eng` | `recsys/pipeline/feature_eng.py` | `preprocessed.parquet`         | `train.parquet`, `test.parquet`   |
+| `train`       | `recsys/pipeline/train.py`       | `train.parquet`                | `models/model.pkl`                  |
+| `evaluate`    | `recsys/pipeline/evaluate.py`    | `model.pkl` + `test.parquet` | `metrics.json`                      |
 
 ### Alternar entre modelos
 
@@ -233,6 +234,7 @@ poetry run python scripts/register_model.py
 ```
 
 O script automaticamente:
+
 1. Encapsula o modelo em um wrapper `mlflow.pyfunc.PythonModel`
 2. Registra sob o nome `NeuMF-Instacart` no Model Registry
 3. Promove a última versão para o estágio **Production**

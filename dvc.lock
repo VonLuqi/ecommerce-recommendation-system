@@ -22,8 +22,8 @@ stages:
       size: 2015
     - path: src/recsys/pipeline/preprocess.py
       hash: md5
-      md5: abdc5ab1cf84eae5b336d4701b634fa2
-      size: 3754
+      md5: be8b440b30feb55f9cd124119002bcdf
+      size: 3755
     outs:
     - path: data/interim/preprocessed.parquet
       hash: md5
@@ -40,8 +40,8 @@ stages:
       size: 59540240
     - path: src/recsys/pipeline/feature_eng.py
       hash: md5
-      md5: 6769ef8638d53071d95e4d94dcc86e92
-      size: 4346
+      md5: b783d53590437135def4071ac4acde24
+      size: 4347
     outs:
     - path: data/processed/features.parquet
       hash: md5
@@ -67,12 +67,12 @@ stages:
       size: 141644488
     - path: src/recsys/models/neural_net.py
       hash: md5
-      md5: 0108a040bc38195f7cbb2c935d6dfb74
-      size: 7295
+      md5: 36187a3401a8cb4d8b2a731ce724c6cb
+      size: 7296
     - path: src/recsys/pipeline/train.py
       hash: md5
-      md5: 889dc5f7469408cdd6fd8304a58957ff
-      size: 8377
+      md5: 55d22fc1186016d043051fced61ffa4c
+      size: 8378
     - path: src/recsys/recommenders/base.py
       hash: md5
       md5: 5264d17dda69e5d191ad685d315e71cf
@@ -83,8 +83,8 @@ stages:
       size: 5384
     - path: src/recsys/recommenders/neural.py
       hash: md5
-      md5: 2673f9c4ad48f42c3b062128ee9e95b4
-      size: 27986
+      md5: 9bd31388fd2c20c6cd4e497f523f144a
+      size: 28024
     params:
       params.yaml:
         model.batch_size: 1024
@@ -98,7 +98,7 @@ stages:
     outs:
     - path: models/model.pkl
       hash: md5
-      md5: 190adfef7f55a131f99d12cf5462f330
+      md5: 0ef087894a009bfaf3edf6561f8c3159
       size: 15274011
   evaluate:
     cmd: python -m recsys.pipeline.evaluate --model models/model.pkl --data 
@@ -115,16 +115,16 @@ stages:
       size: 141644488
     - path: models/model.pkl
       hash: md5
-      md5: 190adfef7f55a131f99d12cf5462f330
+      md5: 0ef087894a009bfaf3edf6561f8c3159
       size: 15274011
     - path: src/recsys/metrics/evaluation.py
       hash: md5
-      md5: 8bae04149828b4c76dc346702895e297
-      size: 2716
+      md5: 7f09ff6f35ac95f3bb57c493e45e4e37
+      size: 2677
     - path: src/recsys/pipeline/evaluate.py
       hash: md5
-      md5: f4d36e679d4845661f19ba729746a0c2
-      size: 6858
+      md5: 5736a1bdad73c4a8b94425e96a45d4c8
+      size: 6827
     - path: src/recsys/recommenders/base.py
       hash: md5
       md5: 5264d17dda69e5d191ad685d315e71cf
@@ -132,22 +132,22 @@ stages:
     outs:
     - path: metrics.json
       hash: md5
-      md5: 74e8b0edd48626628d76af02f2c26be3
-      size: 247
+      md5: da8d236679249ae6023a201457a134c9
+      size: 245
   run_tests:
     cmd: python -m pytest > smoke_test_output.log
     deps:
     - path: src/recsys/metrics/evaluation.py
       hash: md5
-      md5: 8bae04149828b4c76dc346702895e297
-      size: 2716
+      md5: 7f09ff6f35ac95f3bb57c493e45e4e37
+      size: 2677
     - path: tests/
       hash: md5
-      md5: aab5b1bf81155a09f00c559b5d61d9b0.dir
-      size: 166188
+      md5: 2ae4419c4220ca1c83b021257bdd3cbe.dir
+      size: 166063
       nfiles: 15
     outs:
     - path: smoke_test_output.log
       hash: md5
-      md5: 0c53d3c9a7a84b0fd0fa2ba61b609da7
+      md5: 2f45058cec6a70624d054fa027ad7049
       size: 4124
