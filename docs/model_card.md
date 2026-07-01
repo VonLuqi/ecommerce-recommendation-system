@@ -130,12 +130,12 @@ flowchart TB
 
 | Modelo                   | NDCG@10     | MAP@10     | Precision@10 | Recall@10  |
 |:-------------------------|:-----------:|:----------:|:------------:|:----------:|
-| **NeuMF Final (20 épocas)** | **7.10%** | **2.97%** | **5.63%**  | **5.24%** |
+| **NeuMF Final (20 épocas)** | **7.42%** | **3.13%** | **5.86%**  | **5.43%** |
 | NeuMF Smoke Test (1 época)  | 6.80%     | 2.83%     | 5.40%       | 4.90%    |
 | Baseline SVD (TruncatedSVD) | 2.17%     | 0.73%     | 2.02%       | 2.59%    |
 
 > [!NOTE]
-> O modelo NeuMF Final superou o baseline SVD em **3.27×** em NDCG@10, demonstrando a eficácia da arquitetura de embeddings neurais sobre a fatoração de matrizes clássica para dados de feedback implícito.
+> O modelo NeuMF Final superou o baseline SVD em **3.42×** em NDCG@10, demonstrando a eficácia da arquitetura de embeddings neurais sobre a fatoração de matrizes clássica para dados de feedback implícito.
 
 ### Runs no MLflow
 
@@ -143,9 +143,9 @@ flowchart TB
 |---------------------|---------------|---------|
 | `classy-bee-362`    | Baseline SVD  | 2.17%   |
 | `smiling-dolphin-923` | NeuMF (1 época) | 6.80% |
-| `learned-asp-680`   | NeuMF (20 épocas) | **7.10%** |
+| `auspicious-fish-336` | NeuMF (20 épocas) | **7.42%** |
 
-O modelo `learned-asp-680` foi registrado no **Model Registry** do MLflow como `NeuMF-Instacart v1` e promovido ao estágio **Production**.
+O modelo `auspicious-fish-336` foi registrado no **Model Registry** do MLflow como `NeuMF-Instacart v1` e associado ao alias **champion**.
 
 ---
 
@@ -245,11 +245,11 @@ Todos os seeds aleatórios são fixados em 42 via `src/recsys/utils/seeds.py`:
 |---------------------|-------------------------------|
 | **Nome no Registry** | `NeuMF-Instacart`            |
 | **Versão**          | 1                              |
-| **Estágio**         | Production                     |
+| **Alias**           | champion                       |
 | **Framework**       | PyTorch 2.2+                   |
 | **Wrapper**         | `mlflow.pyfunc.PythonModel`    |
 | **Formato**         | `.pth` (torch checkpoint) + pickle wrapper |
-| **Tracking URI**    | `http://localhost:5001`        |
+| **Tracking URI**    | Configurado via `MLFLOW_TRACKING_URI` (padrão `http://localhost:5001`) |
 | **Experimento**     | `neumf-instacart`              |
 
 ---

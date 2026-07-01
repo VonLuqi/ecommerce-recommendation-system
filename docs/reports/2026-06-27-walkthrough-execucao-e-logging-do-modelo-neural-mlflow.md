@@ -43,12 +43,12 @@ As 3 runs planejadas foram executadas localmente e registradas no servidor do ML
 Criamos o script automatizado [register_model.py](file:///Users/eduardobatista/Code/ecommerce-recommendation-system/scripts/register_model.py) para registrar o modelo e promovê-lo no Model Registry:
 1.  **Wrapper Customizado**: Criamos `RecommenderModelWrapper` derivado de `mlflow.pyfunc.PythonModel` para encapsular a carga e predict de forma independente.
 2.  **Exportação do Ambiente**: O MLflow utilizou `uv export` para gerar e empacotar o arquivo de requerimentos `requirements.txt` junto aos arquivos de configuração `pyproject.toml` e `uv.lock`.
-3.  **Promoção para Production**: O script contatou o Model Registry e promoveu a versão 1 do modelo `NeuMF-Instacart` ao estágio **Production** com sucesso.
+3.  **Promoção via Alias**: O script contatou o Model Registry e associou o alias `"champion"` à versão do modelo registrada com sucesso.
 
 ### 📝 Verificação no Model Registry:
 ```bash
-$ uv run python -c "import mlflow; mlflow.set_tracking_uri('http://localhost:5001'); from mlflow.tracking import MlflowClient; client = MlflowClient(); print([(mv.name, mv.version, mv.current_stage) for mv in client.get_latest_versions('NeuMF-Instacart')])"
-[('NeuMF-Instacart', '1', 'Production')]
+$ uv run python -c "import mlflow; mlflow.set_tracking_uri('http://localhost:5001'); from mlflow.tracking import MlflowClient; client = MlflowClient(); print(client.get_model_version_by_alias('NeuMF-Instacart', 'champion').version)"
+1
 ```
 
 ---
