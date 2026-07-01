@@ -1,8 +1,9 @@
-"""Script para registrar o modelo treinado no Model Registry do MLflow e promovê-lo a Production.
+"""Script para registrar o modelo treinado no Model Registry do MLflow e promovê-lo usando aliases.
 
 Este script carrega o modelo serializado de 'models/model.pkl', encapsula-o
 em um wrapper customizado do MLflow PythonModel (para que possa realizar inferência
-em lote com mappings de IDs integrados) e registra/promove o modelo no tracking server.
+em lote com mappings de IDs integrados) e registra o modelo no tracking server,
+associando o alias 'champion' (estratégia moderna recomendada a partir do MLflow 2.9).
 
 Usage:
     python scripts/register_model.py
@@ -17,6 +18,14 @@ from pathlib import Path
 import mlflow
 import mlflow.pyfunc
 from mlflow.tracking import MlflowClient
+
+# Garante que o diretório src/ está no path do interpretador para importações locais
+project_root = Path(__file__).resolve().parent.parent
+src_path = str(project_root / "src")
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
+from recsys.config import settings
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -66,7 +75,10 @@ class RecommenderModelWrapper(mlflow.pyfunc.PythonModel):
         else:
             user_ids = list(model_input)
 
-        _log.info("Gerando recomendações em lote para %d usuários via MLflow predict...", len(user_ids))
+        _log.info(
+            "Gerando recomendações em lote para %d usuários via MLflow predict...",
+            len(user_ids),
+        )
         return self.recommender.recommend_batch(user_ids, top_k=10)
 
 
@@ -78,12 +90,15 @@ class RecommenderModelWrapper(mlflow.pyfunc.PythonModel):
 def main() -> None:
     model_path = Path("models/model.pkl")
     if not model_path.exists():
-        _log.error("Arquivo de modelo '%s' não encontrado. Execute o pipeline primeiro.", model_path)
+        _log.error(
+            "Arquivo de modelo '%s' não encontrado. Execute o pipeline primeiro.",
+            model_path,
+        )
         sys.exit(1)
 
-    # 1. Configurar URIs de Tracking
-    tracking_uri = "http://localhost:5001"
-    experiment_name = "neumf-instacart"
+    # 1. Configurar URIs de Tracking via settings do projeto
+    tracking_uri = settings.mlflow.tracking_uri
+    experiment_name = settings.mlflow.experiment_name
     model_name = "NeuMF-Instacart"
 
     _log.info("Conectando ao servidor do MLflow em '%s'...", tracking_uri)
@@ -97,8 +112,11 @@ def main() -> None:
         mlflow.log_param("registration_source", "scripts/register_model.py")
 
         # Loga o modelo encapsulado no wrapper customizado
-        _log.info("Salvando e registrando modelo no Model Registry sob o nome '%s'...", model_name)
-        model_info = mlflow.pyfunc.log_model(
+        _log.info(
+            "Salvando e registrando modelo no Model Registry sob o nome '%s'...",
+            model_name,
+        )
+        mlflow.pyfunc.log_model(
             artifact_path="recommender_model",
             python_model=RecommenderModelWrapper(),
             artifacts={"model_file": str(model_path)},
@@ -106,8 +124,8 @@ def main() -> None:
         )
         _log.info("Modelo registrado com sucesso. Run ID: %s", run.info.run_id)
 
-    # 3. Transicionar o Modelo no Model Registry para Production
-    _log.info("Iniciando transição de estágio no Model Registry...")
+    # 3. Associar Alias no Model Registry
+    _log.info("Associando alias 'champion' no Model Registry...")
     client = MlflowClient()
 
     # Obtém a última versão cadastrada no Model Registry
@@ -119,15 +137,14 @@ def main() -> None:
     latest_version = latest_versions[-1].version
     _log.info("Última versão do modelo encontrada: %s", latest_version)
 
-    # Transiciona a última versão do modelo para "Production"
-    client.transition_model_version_stage(
+    # Associa o alias "champion" à última versão
+    client.set_registered_model_alias(
         name=model_name,
+        alias="champion",
         version=latest_version,
-        stage="Production",
-        archive_existing_versions=True,
     )
     _log.info(
-        "=== SUCESSO: Versão %s do modelo '%s' promovida a 'Production'! ===",
+        "=== SUCESSO: Versão %s do modelo '%s' associada ao alias 'champion'! ===",
         latest_version,
         model_name,
     )
