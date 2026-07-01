@@ -34,7 +34,7 @@ O modelo **NeuMF** (Neural Matrix Factorization) foi treinado por 20 épocas e s
 
 | Modelo                             |     NDCG@10     |     MAP@10     |  Precision@10  |    Recall@10    |
 | :--------------------------------- | :-------------: | :-------------: | :-------------: | :-------------: |
-| **NeuMF Final (20 épocas)** | **7.10%** | **2.97%** | **5.63%** | **5.24%** |
+| **NeuMF Final (20 épocas)** | **7.42%** | **3.13%** | **5.86%** | **5.43%** |
 | Baseline SVD                       |      2.17%      |      0.73%      |      2.02%      |      2.59%      |
 
 > Para detalhes completos sobre a arquitetura, limitações e vieses, veja o [Model Card](docs/model_card.md).
@@ -237,9 +237,9 @@ O script automaticamente:
 
 1. Encapsula o modelo em um wrapper `mlflow.pyfunc.PythonModel`
 2. Registra sob o nome `NeuMF-Instacart` no Model Registry
-3. Promove a última versão para o estágio **Production**
+3. Associa a última versão ao alias **champion**
 
-### Verificar o modelo em Production
+### Verificar o modelo e seu alias
 
 ```bash
 uv run python -c "
@@ -247,8 +247,7 @@ import mlflow
 mlflow.set_tracking_uri('http://localhost:5001')
 from mlflow.tracking import MlflowClient
 client = MlflowClient()
-print([(mv.name, mv.version, mv.current_stage)
-       for mv in client.get_latest_versions('NeuMF-Instacart')])
+print(client.get_model_version_by_alias('NeuMF-Instacart', 'champion'))
 "
 ```
 
