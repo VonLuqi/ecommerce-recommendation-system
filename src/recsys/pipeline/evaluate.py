@@ -77,7 +77,9 @@ def calculate_metrics(
         maps.append(map_at_k(y_true_str, y_pred, top_k))
 
     return {
-        f"precision_at_{top_k}": sum(precisions) / len(precisions) if precisions else 0.0,
+        f"precision_at_{top_k}": sum(precisions) / len(precisions)
+        if precisions
+        else 0.0,
         f"recall_at_{top_k}": sum(recalls) / len(recalls) if recalls else 0.0,
         f"ndcg_at_{top_k}": sum(ndcgs) / len(ndcgs) if ndcgs else 0.0,
         f"map_at_{top_k}": sum(maps) / len(maps) if maps else 0.0,
@@ -97,8 +99,11 @@ def load_model(model_path: Path) -> BaseRecommender:
         with model_path.open("rb") as f:
             return pickle.load(f)  # noqa: S301
     except Exception:
-        _log.info("Falha ao carregar com pickle. Tentando carregar como modelo PyTorch (NeuMF)...")
+        _log.info(
+            "Falha ao carregar com pickle. Tentando carregar como modelo PyTorch (NeuMF)..."
+        )
         from recsys.recommenders.neural import NeuralRecommender
+
         recommender = NeuralRecommender()
         recommender.load(model_path)
         return recommender

@@ -67,9 +67,7 @@ class NeuMF(nn.Module):
         super().__init__()
 
         if not use_gmf and not use_mlp:
-            raise ValueError(
-                "Pelo menos um dos ramos (GMF ou MLP) deve estar activo."
-            )
+            raise ValueError("Pelo menos um dos ramos (GMF ou MLP) deve estar activo.")
 
         if mlp_hidden_dims is None:
             mlp_hidden_dims = [256, 128, 64]
@@ -134,10 +132,7 @@ class NeuMF(nn.Module):
         Concatena os ramos GMF e MLP e projecta para 1 neurónio (logit).
         """
         gmf_out_dim = self.embedding_dim if self.use_gmf else 0
-        mlp_out_dim = (
-            self.mlp_hidden_dims[-1] if self.use_mlp
-            else 0
-        )
+        mlp_out_dim = self.mlp_hidden_dims[-1] if self.use_mlp else 0
         final_in_dim = gmf_out_dim + mlp_out_dim
 
         self.final_layer = nn.Linear(final_in_dim, 1)

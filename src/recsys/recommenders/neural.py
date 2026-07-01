@@ -43,7 +43,9 @@ class _InteractionDataset(Dataset):
     Mantém arrays NumPy em memória para evitar overhead de tensores na indexação individual.
     """
 
-    def __init__(self, users: np.ndarray, items: np.ndarray, ratings: np.ndarray) -> None:
+    def __init__(
+        self, users: np.ndarray, items: np.ndarray, ratings: np.ndarray
+    ) -> None:
         """Inicializa o dataset.
 
         Args:
@@ -68,7 +70,9 @@ class _NegativeSamplingCollate:
     Evita instanciar todas as amostras negativas em memória de uma única vez.
     """
 
-    def __init__(self, user_pos: list[set[int]], num_items: int, num_negatives: int = 4) -> None:
+    def __init__(
+        self, user_pos: list[set[int]], num_items: int, num_negatives: int = 4
+    ) -> None:
         self.user_pos = user_pos
         self.num_items = num_items
         self.num_negatives = num_negatives
@@ -351,7 +355,9 @@ class NeuralRecommender(BaseRecommender):
                         out_ratings[write_idx] = 0.0
                         write_idx += 1
                         sampled += 1
-                        pos_set.add(item)  # Evita duplicados no mesmo batch de negativos
+                        pos_set.add(
+                            item
+                        )  # Evita duplicados no mesmo batch de negativos
                         if sampled == n_neg_to_sample:
                             break
                 attempts += 1
@@ -382,11 +388,7 @@ class NeuralRecommender(BaseRecommender):
         items = [self._idx_to_item[i.item()] for i in dataset.items]
         ratings = [r.item() for r in dataset.ratings]
 
-        return pd.DataFrame({
-            "user_id": users,
-            "item_id": items,
-            "rating": ratings
-        })
+        return pd.DataFrame({"user_id": users, "item_id": items, "rating": ratings})
 
     def fit(self, interactions: pd.DataFrame) -> None:
         """Treina o NeuMF com early stopping e amostragem dinâmica de negativos.
@@ -419,8 +421,12 @@ class NeuralRecommender(BaseRecommender):
         num_items = len(items)
 
         # Mapeamento para inteiros NumPy para alta performance
-        user_ids_mapped = interactions["user_id"].map(self._user_idx).to_numpy(dtype=np.int32)
-        item_ids_mapped = interactions["item_id"].map(self._item_idx).to_numpy(dtype=np.int32)
+        user_ids_mapped = (
+            interactions["user_id"].map(self._user_idx).to_numpy(dtype=np.int32)
+        )
+        item_ids_mapped = (
+            interactions["item_id"].map(self._item_idx).to_numpy(dtype=np.int32)
+        )
 
         # --- Split treino / validação ---
         indices = np.arange(len(interactions))
@@ -440,14 +446,20 @@ class NeuralRecommender(BaseRecommender):
 
         # --- Datasets e DataLoaders de Validação (negativos fixos pré-gerados) ---
         _log.info("Gerando negativos para conjunto de validação...")
-        val_dataset = self._sample_negatives_dataset(val_user_ids, val_item_ids, num_negatives=4)
+        val_dataset = self._sample_negatives_dataset(
+            val_user_ids, val_item_ids, num_negatives=4
+        )
         val_loader = DataLoader(
-            val_dataset, batch_size=self.batch_size, shuffle=False,
+            val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
         )
 
         # --- Dataset e DataLoader de Treino (negativos gerados on-the-fly por batch) ---
         train_dataset = _InteractionDataset(
-            train_user_ids, train_item_ids, np.ones(len(train_user_ids), dtype=np.float32)
+            train_user_ids,
+            train_item_ids,
+            np.ones(len(train_user_ids), dtype=np.float32),
         )
         train_collate = _NegativeSamplingCollate(user_pos, num_items, num_negatives=4)
         train_loader = DataLoader(
@@ -477,18 +489,20 @@ class NeuralRecommender(BaseRecommender):
 
         # --- Early Stopping ---
         early_stopping = _EarlyStopping(
-            patience=self.patience, min_delta=self.min_delta,
+            patience=self.patience,
+            min_delta=self.min_delta,
         )
 
         # --- Tensor de todos os itens (para recommend) ---
         self._all_item_ids_tensor = torch.arange(
-            num_items, dtype=torch.long, device=self.device,
+            num_items,
+            dtype=torch.long,
+            device=self.device,
         )
 
         # --- Loop de treino ---
         _log.info(
-            "Iniciando treino NeuMF: %d users, %d items, %d val (com negs), "
-            "device=%s",
+            "Iniciando treino NeuMF: %d users, %d items, %d val (com negs), device=%s",
             num_users,
             num_items,
             len(val_dataset),
@@ -517,8 +531,7 @@ class NeuralRecommender(BaseRecommender):
 
             if early_stopping.step(val_loss, self._model):
                 _log.info(
-                    "Early stopping activado na época %d. "
-                    "Melhor val_loss: %.6f.",
+                    "Early stopping activado na época %d. Melhor val_loss: %.6f.",
                     epoch,
                     early_stopping.best_loss,
                 )
@@ -615,7 +628,9 @@ class NeuralRecommender(BaseRecommender):
 
             # Expande tensores diretamente no dispositivo de destino, evitando overhead de alocação no host
             # e transferência de grandes volumes de dados via barramento CPU-GPU
-            user_tensor = torch.tensor(u_indices, dtype=torch.long, device=self.device).repeat_interleave(num_items)
+            user_tensor = torch.tensor(
+                u_indices, dtype=torch.long, device=self.device
+            ).repeat_interleave(num_items)
             item_tensor = self._all_item_ids_tensor.repeat(len(batch_u))
 
             with torch.no_grad():
@@ -698,7 +713,9 @@ class NeuralRecommender(BaseRecommender):
         self.seed = checkpoint["seed"]
 
         self._all_item_ids_tensor = torch.arange(
-            len(self._item_idx), dtype=torch.long, device=self.device,
+            len(self._item_idx),
+            dtype=torch.long,
+            device=self.device,
         )
         self._is_fitted = True
         _log.info("Modelo carregado de '%s'.", path)

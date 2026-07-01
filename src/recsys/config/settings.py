@@ -58,9 +58,7 @@ class MLflowSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    tracking_uri: str = Field(
-        default="mlruns", alias="MLFLOW_TRACKING_URI"
-    )
+    tracking_uri: str = Field(default="mlruns", alias="MLFLOW_TRACKING_URI")
     experiment_name: str = Field(
         default="neumf-instacart", alias="MLFLOW_EXPERIMENT_NAME"
     )
@@ -110,7 +108,6 @@ class AppSettings(BaseSettings):
         allowed = {"development", "staging", "production"}
         if self.environment not in allowed:
             raise ValueError(
-                f"environment deve ser um de {allowed}, "
-                f"recebido: '{self.environment}'"
+                f"environment deve ser um de {allowed}, recebido: '{self.environment}'"
             )
         return self
