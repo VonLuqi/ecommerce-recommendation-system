@@ -14,6 +14,7 @@ ENV UV_CONCURRENT_DOWNLOADS=1
 
 WORKDIR /app
 
+# Copia arquivos de dependências (cache layer)
 COPY pyproject.toml uv.lock ./
 
 ARG GPU=false
@@ -42,6 +43,7 @@ WORKDIR /app
 # Variáveis de ambiente
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV GIT_PYTHON_REFRESH=quiet
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app/src"
 
