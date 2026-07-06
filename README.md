@@ -206,13 +206,13 @@ O projeto tem um `Dockerfile` multi-stage (builder → runtime → pipeline) e u
 
 ```bash
 make docker-up            # Sobe o MLflow Server (http://localhost:5001)
-make docker-train         # Executa treino no container
-make docker-pipeline      # Executa dvc repro no container
+make docker-train         # Executa treino no container (CPU)
+make docker-pipeline      # Executa dvc repro no container (CPU)
 make docker-down          # Derruba todos os serviços
-make docker-build         # Builda as imagens
+make docker-build         # Builda as imagens (CPU — sem dependências de GPU, leve e rápido)
 make docker-ps            # Status dos containers
 make docker-logs          # Logs em tempo real
-make docker-from-scratch  # Limpa, builda e sobe tudo do zero
+make docker-from-scratch  # Limpa, builda (CPU) e sobe tudo do zero (CPU)
 ```
 
 ### Comandos equivalentes via `docker compose`
@@ -229,16 +229,22 @@ docker compose down                # Derruba serviços
 > [!WARNING]
 > **Suporte a GPU via Docker requer Linux com drivers NVIDIA e [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) instalados.** No macOS e Windows, o Docker Desktop **não suporta GPU passthrough** (nem CUDA, nem MPS). Nesses ambientes, o PyTorch usa CPU automaticamente (fallback seguro).
 
-Para executar com GPU:
+Para construir e executar com GPU:
 
 ```bash
-make docker-train-gpu     # Treino com GPU
-make docker-pipeline-gpu  # Pipeline com GPU
+make docker-build-gpu         # Builda as imagens com suporte GPU (CUDA)
+make docker-train-gpu         # Treino no container com GPU
+make docker-pipeline-gpu      # Pipeline com GPU
+make docker-from-scratch-gpu  # Limpa, builda (GPU) e sobe tudo do zero (GPU)
 ```
 
-Ou diretamente:
+Ou diretamente via Docker Compose:
 
 ```bash
+# Build
+GPU=true docker compose build
+
+# Execução
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm train
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm pipeline
 ```
@@ -331,16 +337,19 @@ make lint-fix             # corrige lint automaticamente
 make pipeline             # executa dvc repro (local)
 make metrics              # exibe métricas
 
-# Docker
+# Docker (CPU — sem GPU)
 make docker-up            # sobe MLflow Server
-make docker-train         # treino no container
-make docker-pipeline      # dvc repro no container
+make docker-build         # builda imagens (CPU)
+make docker-train         # treino no container (CPU)
+make docker-pipeline      # dvc repro no container (CPU)
 make docker-down          # derruba serviços
-make docker-from-scratch  # reset completo
+make docker-from-scratch  # reset completo (CPU)
 
 # Docker com GPU (Linux + NVIDIA)
+make docker-build-gpu     # builda imagens com GPU
 make docker-train-gpu     # treino com GPU
 make docker-pipeline-gpu  # pipeline com GPU
+make docker-from-scratch-gpu # reset completo (GPU)
 
 # Limpeza
 make clean                # remove caches Python
