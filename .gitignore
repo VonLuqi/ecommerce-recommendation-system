@@ -88,3 +88,8 @@ mlflow.db
 *.swo
 .DS_Store
 Thumbs.db
+
+# =============================================================================
+# Git worktrees (workspaces isolados para desenvolvimento agêntico)
+# =============================================================================
+.worktrees/
