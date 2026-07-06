@@ -90,3 +90,28 @@ class TestPopularityRecommender:
         """PopularityRecommender deve satisfazer o contrato da interface."""
         rec = PopularityRecommender()
         assert isinstance(rec, BaseRecommender)
+
+
+# ---------------------------------------------------------------------------
+# train_popularity — pipeline integration
+# ---------------------------------------------------------------------------
+
+
+def test_train_popularity_serializes_model(
+    tmp_path, sample_interactions: pd.DataFrame
+) -> None:
+    """train_popularity deve treinar e salvar um PopularityRecommender."""
+    import pickle
+
+    from recsys.pipeline.train import train_popularity
+
+    input_path = tmp_path / "train.parquet"
+    sample_interactions.to_parquet(input_path)
+    output_path = tmp_path / "popularity_model.pkl"
+
+    train_popularity(input_path=input_path, output_path=output_path, seed=42)
+
+    assert output_path.exists()
+    with output_path.open("rb") as f:
+        model = pickle.load(f)
+    assert isinstance(model, PopularityRecommender)

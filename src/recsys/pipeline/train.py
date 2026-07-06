@@ -163,6 +163,43 @@ def train_neural(
     mlflow.log_artifact(str(output_path))
 
 
+def train_popularity(
+    input_path: Path,
+    output_path: Path,
+    seed: int,
+) -> None:
+    """Treina o baseline de popularidade e salva o modelo.
+
+    Args:
+        input_path: Caminho do Parquet de treino.
+        output_path: Caminho de saída do ``.pkl``.
+        seed: Semente aleatória global.
+    """
+    from recsys.recommenders.popularity import PopularityRecommender
+
+    fix_seeds(seed)
+
+    mlflow.log_param("model_type", "popularity")
+    mlflow.log_param("seed", seed)
+
+    _log.info("Lendo dados de treino de '%s'...", input_path)
+    train_df: pd.DataFrame = pd.read_parquet(input_path)
+    _log.info("%d interações de treino.", len(train_df))
+
+    recommender = PopularityRecommender()
+    recommender.fit(train_df)
+    _log.info("Modelo de popularidade treinado.")
+
+    mlflow.log_metric("n_train_interactions", len(train_df))
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("wb") as f:
+        pickle.dump(recommender, f)
+    _log.info("Modelo salvo em '%s'.", output_path)
+
+    mlflow.log_artifact(str(output_path))
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -193,7 +230,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         type=str,
-        choices=["baseline", "neural"],
+        choices=["baseline", "neural", "popularity"],
         default=settings.model.recommender_type,
         help="Modo de treino: 'baseline' (SVD) ou 'neural' (NeuMF).",
     )
@@ -271,6 +308,12 @@ def main() -> None:
         mlflow.log_param("execution_mode", args.mode)
         if args.mode == "baseline":
             train_svd(
+                input_path=args.input,
+                output_path=args.output,
+                seed=args.seed,
+            )
+        elif args.mode == "popularity":
+            train_popularity(
                 input_path=args.input,
                 output_path=args.output,
                 seed=args.seed,

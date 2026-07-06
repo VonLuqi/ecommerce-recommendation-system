@@ -1,5 +1,5 @@
 model:
-  recommender_type: neural  # baseline | neural
+  recommender_type: neural  # baseline | neural | popularity
   embedding_dim: 8
   epochs: 20
   batch_size: 1024
