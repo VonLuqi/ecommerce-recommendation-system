@@ -232,7 +232,7 @@ def _parse_args() -> argparse.Namespace:
         type=str,
         choices=["baseline", "neural", "popularity"],
         default=settings.model.recommender_type,
-        help="Modo de treino: 'baseline' (SVD) ou 'neural' (NeuMF).",
+        help="Modo de treino: 'baseline' (SVD), 'neural' (NeuMF) ou 'popularity'.",
     )
 
     # Parâmetros do modelo neural
