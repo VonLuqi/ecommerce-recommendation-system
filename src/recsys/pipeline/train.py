@@ -304,8 +304,13 @@ def main() -> None:
 
     mlflow.set_experiment(settings.mlflow.experiment_name)
 
-    with mlflow.start_run():
+    with mlflow.start_run() as run:
         mlflow.log_param("execution_mode", args.mode)
+        tracking_uri = settings.mlflow.tracking_uri or ""
+        if "mlflow:5000" in tracking_uri:
+            friendly_url = f"http://localhost:5001/#/experiments/{run.info.experiment_id}/runs/{run.info.run_id}"
+            print(f"🏃 View run at: {friendly_url}")
+            print(f"🧪 View experiment at: http://localhost:5001/#/experiments/{run.info.experiment_id}")
         if args.mode == "baseline":
             train_svd(
                 input_path=args.input,

@@ -158,8 +158,13 @@ def evaluate(
                     mlflow.log_metric(key, float(value))
         else:
             mlflow.set_experiment(settings.mlflow.experiment_name)
-            with mlflow.start_run(run_name="evaluation"):
+            with mlflow.start_run(run_name="evaluation") as run:
                 mlflow.log_param("evaluate_only", True)
+                tracking_uri = settings.mlflow.tracking_uri or ""
+                if "mlflow:5000" in tracking_uri:
+                    friendly_url = f"http://localhost:5001/#/experiments/{run.info.experiment_id}/runs/{run.info.run_id}"
+                    print(f"🏃 View run at: {friendly_url}")
+                    print(f"🧪 View experiment at: http://localhost:5001/#/experiments/{run.info.experiment_id}")
                 for key, value in metrics.items():
                     if isinstance(value, (int, float)):
                         mlflow.log_metric(key, float(value))

@@ -82,6 +82,7 @@ services:
       # Aponta para o MESMO servidor acessível em localhost:5001 no host.
       # Resultado: todos os experimentos (local + Docker) ficam unificados.
       MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_AVOID_PRINT_RUN_URL: "true"
     depends_on:
       mlflow:
         condition: service_healthy
@@ -114,6 +115,7 @@ services:
       # Aponta para o MESMO servidor acessível em localhost:5001 no host.
       # Resultado: todos os experimentos (local + Docker) ficam unificados.
       MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_AVOID_PRINT_RUN_URL: "true"
     networks:
       - default
     depends_on:

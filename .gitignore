@@ -56,8 +56,7 @@ htmlcov/
 # Ignora os arquivos de dados pesados, mas permite os metadados do DVC (.dvc)
 data/raw/*
 !data/raw/.gitkeep
-# !data/raw/*.dvc
-data/raw/*.dvc
+!data/raw/*.dvc
 data/interim/*
 !data/interim/.gitkeep
 !data/interim/*.dvc
