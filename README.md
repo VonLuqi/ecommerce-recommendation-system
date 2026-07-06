@@ -1,3 +1,5 @@
+/
+
 # E-Commerce Recommendation System
 
 ![Fase](https://img.shields.io/badge/fase-entrega-blue)
@@ -80,28 +82,28 @@ Edite o `.env` se necessário (os valores padrão funcionam para desenvolvimento
 
 #### Variáveis de ambiente
 
-| Variável | Descrição | Default | Obrigatória |
-|---|---|---|---|
-| `PROJECT_NAME` | Nome do projeto | `ecommerce-recommendation-system` | Sim |
-| `ENVIRONMENT` | Ambiente de execução (`development` \| `staging` \| `production`) | `development` | Sim |
-| `RANDOM_SEED` | Semente para reprodutibilidade | `42` | Sim |
-| `RAW_DATA_PATH` | Caminho dos CSVs brutos | `data/raw` | Sim |
-| `INTERIM_DATA_PATH` | Caminho dos dados pré-processados | `data/interim` | Sim |
-| `PROCESSED_DATA_PATH` | Caminho dos dados processados | `data/processed` | Sim |
-| `MODELS_PATH` | Caminho dos modelos serializados | `models` | Sim |
-| `TOP_K` | Número de recomendações geradas | `10` | Sim |
-| `RECOMMENDER_TYPE` | Tipo de modelo (`baseline` \| `neural` \| `popularity`) | `baseline` | Não |
-| `MLFLOW_TRACKING_URI` | URI do servidor MLflow (ver abaixo) | `http://localhost:5001` | Sim |
-| `MLFLOW_EXPERIMENT_NAME` | Nome do experimento no MLflow | `neumf-instacart` | Não |
-| `DATASET_NAME` | Nome do dataset utilizado | `instacart` | Não |
+| Variável                  | Descrição                                                               | Default                             | Obrigatória |
+| -------------------------- | ------------------------------------------------------------------------- | ----------------------------------- | ------------ |
+| `PROJECT_NAME`           | Nome do projeto                                                           | `ecommerce-recommendation-system` | Sim          |
+| `ENVIRONMENT`            | Ambiente de execução (`development` \| `staging` \| `production`) | `development`                     | Sim          |
+| `RANDOM_SEED`            | Semente para reprodutibilidade                                            | `42`                              | Sim          |
+| `RAW_DATA_PATH`          | Caminho dos CSVs brutos                                                   | `data/raw`                        | Sim          |
+| `INTERIM_DATA_PATH`      | Caminho dos dados pré-processados                                        | `data/interim`                    | Sim          |
+| `PROCESSED_DATA_PATH`    | Caminho dos dados processados                                             | `data/processed`                  | Sim          |
+| `MODELS_PATH`            | Caminho dos modelos serializados                                          | `models`                          | Sim          |
+| `TOP_K`                  | Número de recomendações geradas                                        | `10`                              | Sim          |
+| `RECOMMENDER_TYPE`       | Tipo de modelo (`baseline` \| `neural` \| `popularity`)             | `baseline`                        | Não         |
+| `MLFLOW_TRACKING_URI`    | URI do servidor MLflow (ver abaixo)                                       | `http://localhost:5001`           | Sim          |
+| `MLFLOW_EXPERIMENT_NAME` | Nome do experimento no MLflow                                             | `neumf-instacart`                 | Não         |
+| `DATASET_NAME`           | Nome do dataset utilizado                                                 | `instacart`                       | Não         |
 
 #### Sobre o `MLFLOW_TRACKING_URI`
 
-| Contexto | Valor | Como funciona |
-|---|---|---|
-| **Local** (com MLflow Server) | `http://localhost:5001` | Aponta para o MLflow Server via porta mapeada do host |
-| **Local** (sem servidor) | `mlruns` | Loga diretamente em `./mlruns/` (sem tracking server) |
-| **Docker** (automático) | `http://mlflow:5000` | Definido no `docker-compose.yml` — rede interna Docker |
+| Contexto                            | Valor                     | Como funciona                                            |
+| ----------------------------------- | ------------------------- | -------------------------------------------------------- |
+| **Local** (com MLflow Server) | `http://localhost:5001` | Aponta para o MLflow Server via porta mapeada do host    |
+| **Local** (sem servidor)      | `mlruns`                | Loga diretamente em`./mlruns/` (sem tracking server)   |
+| **Docker** (automático)      | `http://mlflow:5000`    | Definido no`docker-compose.yml` — rede interna Docker |
 
 > [!NOTE]
 > **Registros unificados:** Tanto `localhost:5001` (acesso local) quanto `mlflow:5000` (acesso dentro do Docker) apontam para o **mesmo servidor MLflow**. Todos os experimentos — sejam executados localmente ou via container — ficam registrados no mesmo backend (`mlruns/mlflow.db`). Não há sobrescrita nem duplicação.
