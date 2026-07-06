@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir uv
 
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
+ENV UV_HTTP_TIMEOUT=300
 
 WORKDIR /app
 
