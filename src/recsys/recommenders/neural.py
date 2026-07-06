@@ -451,7 +451,7 @@ class NeuralRecommender(BaseRecommender):
         # --- Datasets e DataLoaders de Validação (negativos fixos pré-gerados) ---
         _log.info("Gerando negativos para conjunto de validação...")
         val_dataset = self._sample_negatives_dataset(
-            val_user_ids, val_item_ids, num_negatives=self.num_negatives
+            val_user_ids, val_item_ids, num_negatives=4
         )
         val_loader = DataLoader(
             val_dataset,
