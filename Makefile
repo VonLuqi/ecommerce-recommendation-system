@@ -7,7 +7,7 @@
         pipeline metrics dvc-init dvc-add-raw \
         docker-up docker-down docker-build docker-ps docker-logs \
         docker-train docker-pipeline docker-from-scratch \
-        docker-train-gpu docker-pipeline-gpu \
+        docker-build-gpu docker-train-gpu docker-pipeline-gpu docker-from-scratch-gpu \
         clean clean-data clean-docker clean-all
 
 # ---------------------------------------------------------------------------
@@ -46,18 +46,20 @@ help:
 	@echo "Docker — Core:"
 	@echo "  make docker-up            Sobe o MLflow Server (porta 5001)"
 	@echo "  make docker-down          Derruba todos os serviços"
-	@echo "  make docker-build         Builda todas as imagens"
+	@echo "  make docker-build         Builda todas as imagens (CPU — sem dependências de GPU)"
 	@echo "  make docker-ps            Status dos containers"
 	@echo "  make docker-logs          Logs em tempo real (Ctrl+C para sair)"
 	@echo ""
-	@echo "Docker — Train & Pipeline:"
+	@echo "Docker — Train & Pipeline (CPU — sem GPU):"
 	@echo "  make docker-train         Executa treino no container (CPU)"
 	@echo "  make docker-pipeline      Executa dvc repro no container (CPU)"
-	@echo "  make docker-from-scratch  Limpa, builda e sobe tudo do zero"
+	@echo "  make docker-from-scratch  Limpa, builda (CPU) e sobe tudo do zero (CPU)"
 	@echo ""
 	@echo "Docker — GPU (Linux + NVIDIA):"
+	@echo "  make docker-build-gpu     Builda todas as imagens com GPU (CUDA)"
 	@echo "  make docker-train-gpu     Treino no container com GPU"
 	@echo "  make docker-pipeline-gpu  dvc repro no container com GPU"
+	@echo "  make docker-from-scratch-gpu Limpa, builda (GPU) e sobe tudo do zero (GPU)"
 	@echo ""
 	@echo "Limpeza:"
 	@echo "  make clean                Remove caches Python"
@@ -122,10 +124,10 @@ docker-down:  ## Derruba todos os serviços
 	$(COMPOSE) down
 	@echo "✅ Serviços parados"
 
-docker-build:  ## Builda todas as imagens
-	@echo "🔨 Construindo imagens..."
-	$(COMPOSE) build
-	@echo "✅ Build concluído"
+docker-build:  ## Builda todas as imagens (CPU — sem dependências de GPU)
+	@echo "🔨 Construindo imagens (CPU)..."
+	GPU=false $(COMPOSE) build
+	@echo "✅ Build (CPU) concluído"
 
 docker-ps:  ## Status dos containers
 	@echo "📋 Status dos containers:"
@@ -148,10 +150,10 @@ docker-pipeline:  ## Executa dvc repro no container
 	$(COMPOSE) run --rm pipeline
 	@echo "✅ Pipeline concluído"
 
-docker-from-scratch:  ## Limpa Docker, builda e sobe tudo do zero
+docker-from-scratch:  ## Limpa Docker, builda (CPU) e sobe tudo do zero
 	@echo ""
 	@echo "╔══════════════════════════════════════════════════════════════╗"
-	@echo "║          🔥 Docker From Scratch — Reset Completo             ║"
+	@echo "║          🔥 Docker From Scratch (CPU) — Reset                ║"
 	@echo "╚══════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@$(MAKE) clean-docker
@@ -160,9 +162,9 @@ docker-from-scratch:  ## Limpa Docker, builda e sobe tudo do zero
 	@echo ""
 	@$(MAKE) docker-up
 	@echo ""
-	@echo "✅ Stack pronta! Próximos passos:"
-	@echo "   make docker-train       → treina o modelo"
-	@echo "   make docker-pipeline    → roda pipeline DVC completo"
+	@echo "✅ Stack CPU pronta! Próximos passos:"
+	@echo "   make docker-train       → treina o modelo (CPU)"
+	@echo "   make docker-pipeline    → roda pipeline DVC completo (CPU)"
 	@echo ""
 
 # =============================================================================
@@ -174,6 +176,11 @@ docker-from-scratch:  ## Limpa Docker, builda e sobe tudo do zero
 #    - NÃO funciona no macOS (Docker Desktop não suporta GPU passthrough)
 # =============================================================================
 
+docker-build-gpu:  ## Builda todas as imagens com GPU (Linux + NVIDIA)
+	@echo "🔨 Construindo imagens (GPU)..."
+	GPU=true $(COMPOSE) build
+	@echo "✅ Build (GPU) concluído"
+
 docker-train-gpu:  ## Treino no container com GPU (Linux + NVIDIA)
 	@echo "🎓 Executando treino no container com GPU..."
 	$(COMPOSE_GPU) run --rm train
@@ -183,6 +190,23 @@ docker-pipeline-gpu:  ## dvc repro no container com GPU (Linux + NVIDIA)
 	@echo "🔄 Executando pipeline (dvc repro) no container com GPU..."
 	$(COMPOSE_GPU) run --rm pipeline
 	@echo "✅ Pipeline (GPU) concluído"
+
+docker-from-scratch-gpu:  ## Limpa Docker, builda (GPU) e sobe tudo do zero
+	@echo ""
+	@echo "╔══════════════════════════════════════════════════════════════╗"
+	@echo "║          🔥 Docker From Scratch (GPU) — Reset                ║"
+	@echo "╚══════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@$(MAKE) clean-docker
+	@echo ""
+	@$(MAKE) docker-build-gpu
+	@echo ""
+	@$(MAKE) docker-up
+	@echo ""
+	@echo "✅ Stack GPU pronta! Próximos passos:"
+	@echo "   make docker-train-gpu    → treina o modelo (GPU)"
+	@echo "   make docker-pipeline-gpu → roda pipeline DVC completo (GPU)"
+	@echo ""
 
 # =============================================================================
 #  Limpeza

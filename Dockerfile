@@ -14,11 +14,21 @@ ENV UV_CONCURRENT_DOWNLOADS=1
 
 WORKDIR /app
 
-# Copia arquivos de dependências (cache layer)
 COPY pyproject.toml uv.lock ./
 
-# Instala dependências sem o projeto (apenas deps de produção)
-RUN uv sync --frozen --no-install-project --no-dev
+ARG GPU=false
+
+# Se GPU for true, faz a instalação padrão com dependências de GPU (CUDA)
+# Se GPU for false (default), faz a instalação CPU-only leve e rápida
+RUN if [ "$GPU" = "true" ] ; then \
+        uv sync --frozen --no-install-project --no-dev ; \
+    else \
+        uv venv --seed .venv && \
+        uv pip compile pyproject.toml -o /tmp/requirements.txt && \
+        grep -Ev '^(torch|nvidia|triton|cuda-bindings|cuda-toolkit)' /tmp/requirements.txt > /tmp/requirements_no_torch.txt && \
+        uv pip install --no-cache-dir -r /tmp/requirements_no_torch.txt && \
+        uv pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu "torch>=2.2" ; \
+    fi
 
 
 # =============================================================================
@@ -57,7 +67,7 @@ CMD ["python", "-m", "recsys.pipeline.train", \
 FROM runtime AS pipeline
 
 # Instala DVC, git e pytest (necessários pra rodar dvc repro e testes)
-RUN pip install --no-cache-dir "dvc>=3.50" pytest \
+RUN /app/.venv/bin/pip install --no-cache-dir "dvc>=3.50" pytest \
     && apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 
