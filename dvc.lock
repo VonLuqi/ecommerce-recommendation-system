@@ -67,12 +67,12 @@ stages:
       size: 141644488
     - path: src/recsys/models/neural_net.py
       hash: md5
-      md5: 36187a3401a8cb4d8b2a731ce724c6cb
-      size: 7296
+      md5: c38fc257414efec1373d598ad1793647
+      size: 7230
     - path: src/recsys/pipeline/train.py
       hash: md5
-      md5: 55d22fc1186016d043051fced61ffa4c
-      size: 8378
+      md5: 3c7ea02304fcaf209a4365bb33adccf9
+      size: 9960
     - path: src/recsys/recommenders/base.py
       hash: md5
       md5: 5264d17dda69e5d191ad685d315e71cf
@@ -83,8 +83,8 @@ stages:
       size: 5384
     - path: src/recsys/recommenders/neural.py
       hash: md5
-      md5: 9bd31388fd2c20c6cd4e497f523f144a
-      size: 28024
+      md5: dcaebbe69cbbb40c71846c0526d77d23
+      size: 29481
     params:
       params.yaml:
         model.batch_size: 1024
@@ -98,7 +98,7 @@ stages:
     outs:
     - path: models/model.pkl
       hash: md5
-      md5: 0ef087894a009bfaf3edf6561f8c3159
+      md5: c45d2cd7e087cbb0fa3ba17f89e1692c
       size: 15274011
   evaluate:
     cmd: python -m recsys.pipeline.evaluate --model models/model.pkl --data 
@@ -115,7 +115,7 @@ stages:
       size: 141644488
     - path: models/model.pkl
       hash: md5
-      md5: 0ef087894a009bfaf3edf6561f8c3159
+      md5: c45d2cd7e087cbb0fa3ba17f89e1692c
       size: 15274011
     - path: src/recsys/metrics/evaluation.py
       hash: md5
@@ -123,8 +123,8 @@ stages:
       size: 2677
     - path: src/recsys/pipeline/evaluate.py
       hash: md5
-      md5: 5736a1bdad73c4a8b94425e96a45d4c8
-      size: 6827
+      md5: cddb85a7f9b3f7a113d60c79316a1b36
+      size: 6866
     - path: src/recsys/recommenders/base.py
       hash: md5
       md5: 5264d17dda69e5d191ad685d315e71cf
@@ -132,8 +132,8 @@ stages:
     outs:
     - path: metrics.json
       hash: md5
-      md5: da8d236679249ae6023a201457a134c9
-      size: 245
+      md5: 4c204207da14650ac6587654de1a8c32
+      size: 247
   run_tests:
     cmd: python -m pytest > smoke_test_output.log
     deps:
@@ -143,11 +143,11 @@ stages:
       size: 2677
     - path: tests/
       hash: md5
-      md5: 2ae4419c4220ca1c83b021257bdd3cbe.dir
-      size: 166063
+      md5: 04c31cd69156c8caab53fef6fc0d5848.dir
+      size: 177222
       nfiles: 15
     outs:
     - path: smoke_test_output.log
       hash: md5
-      md5: 2f45058cec6a70624d054fa027ad7049
-      size: 4124
+      md5: df00b5307c142738282de9fa386610a4
+      size: 4578

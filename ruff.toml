@@ -26,7 +26,7 @@ ignore = [
 [lint.per-file-ignores]
 # Em testes: dispensar anotações, assert nativo do pytest e uso de geradores
 # pseudo-aleatórios (S311 é falso-positivo em testes de reprodutibilidade)
-"tests/**" = ["ANN", "S101", "S311"]
+"tests/**" = ["ANN", "S101", "S311", "S301"]
 "scripts/**" = ["ANN", "S101", "E402", "I001"]
 
 [lint.isort]

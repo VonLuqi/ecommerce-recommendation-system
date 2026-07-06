@@ -277,6 +277,7 @@ class NeuralRecommender(BaseRecommender):
         self.val_split = val_split
         self.num_negatives = num_negatives
         self.seed = seed
+        self.best_loss: float = float("inf")
         if device is None:
             if torch.cuda.is_available():
                 self.device = "cuda"
@@ -550,6 +551,7 @@ class NeuralRecommender(BaseRecommender):
                 "Melhor estado do modelo restaurado (val_loss=%.6f).",
                 early_stopping.best_loss,
             )
+        self.best_loss = early_stopping.best_loss
 
         self._model.eval()
         self._is_fitted = True

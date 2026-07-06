@@ -1,9 +1,9 @@
 # E-Commerce Recommendation System
 
 ![Fase](https://img.shields.io/badge/fase-entrega-blue)
-![Stack](https://img.shields.io/badge/stack-PyTorch%20%7C%20MLflow%20%7C%20DVC%20%7C%20Docker-informational)
+![Stack](<https://img.shields.io/badge/stack-PyTorch%20%7C%20MLflow%20%7C%20DVC%20%7C%20Docker-informational>)
 ![Status](https://img.shields.io/badge/status-production-brightgreen)
-![Testes](https://img.shields.io/badge/testes-40%20passando-brightgreen)
+![Testes](<https://img.shields.io/badge/testes-40%20passando-brightgreen>)
 
 Sistema de recomendação de produtos para e-commerce baseado no histórico de compras do usuário, implementado com redes neurais do tipo embedding-based (**NeuMF**). Dataset: **Instacart Market Basket Analysis**.
 
@@ -61,15 +61,9 @@ cd ecommerce-recommendation-system
 
 ### 2. Instalar dependências
 
-Com **Poetry**:
-
 ```bash
-poetry install
-```
-
-Com **uv** (alternativa mais rápida):
-
-```bash
+make install
+# ou diretamente:
 uv sync
 ```
 
@@ -81,13 +75,42 @@ cp .env.example .env
 
 Edite o `.env` se necessário (os valores padrão funcionam para desenvolvimento local).
 
+> [!IMPORTANT]
+> **`MLFLOW_TRACKING_URI` é a variável mais crítica do projeto.** Ela controla onde os experimentos são registrados. Se não estiver configurada corretamente, métricas e modelos podem ser logados em locais inesperados.
+
+#### Variáveis de ambiente
+
+| Variável | Descrição | Default | Obrigatória |
+|---|---|---|---|
+| `PROJECT_NAME` | Nome do projeto | `ecommerce-recommendation-system` | Sim |
+| `ENVIRONMENT` | Ambiente de execução (`development` \| `staging` \| `production`) | `development` | Sim |
+| `RANDOM_SEED` | Semente para reprodutibilidade | `42` | Sim |
+| `RAW_DATA_PATH` | Caminho dos CSVs brutos | `data/raw` | Sim |
+| `INTERIM_DATA_PATH` | Caminho dos dados pré-processados | `data/interim` | Sim |
+| `PROCESSED_DATA_PATH` | Caminho dos dados processados | `data/processed` | Sim |
+| `MODELS_PATH` | Caminho dos modelos serializados | `models` | Sim |
+| `TOP_K` | Número de recomendações geradas | `10` | Sim |
+| `RECOMMENDER_TYPE` | Tipo de modelo (`baseline` \| `neural` \| `popularity`) | `baseline` | Não |
+| `MLFLOW_TRACKING_URI` | URI do servidor MLflow (ver abaixo) | `http://localhost:5001` | Sim |
+| `MLFLOW_EXPERIMENT_NAME` | Nome do experimento no MLflow | `neumf-instacart` | Não |
+| `DATASET_NAME` | Nome do dataset utilizado | `instacart` | Não |
+
+#### Sobre o `MLFLOW_TRACKING_URI`
+
+| Contexto | Valor | Como funciona |
+|---|---|---|
+| **Local** (com MLflow Server) | `http://localhost:5001` | Aponta para o MLflow Server via porta mapeada do host |
+| **Local** (sem servidor) | `mlruns` | Loga diretamente em `./mlruns/` (sem tracking server) |
+| **Docker** (automático) | `http://mlflow:5000` | Definido no `docker-compose.yml` — rede interna Docker |
+
+> [!NOTE]
+> **Registros unificados:** Tanto `localhost:5001` (acesso local) quanto `mlflow:5000` (acesso dentro do Docker) apontam para o **mesmo servidor MLflow**. Todos os experimentos — sejam executados localmente ou via container — ficam registrados no mesmo backend (`mlruns/mlflow.db`). Não há sobrescrita nem duplicação.
+
 ### 4. Validar o ambiente
 
 ```bash
-# Com Poetry
-poetry run python scripts/validate_env.py
-
-# Com uv
+make validate
+# ou diretamente:
 uv run python scripts/validate_env.py
 ```
 
@@ -130,10 +153,8 @@ flowchart LR
 ### Rodar o pipeline completo
 
 ```bash
-# Com Poetry
-poetry run dvc repro
-
-# Com uv
+make pipeline
+# ou diretamente:
 uv run dvc repro
 ```
 
@@ -142,8 +163,8 @@ O DVC detecta automaticamente o que mudou e só re-executa as etapas necessária
 ### Ver as métricas
 
 ```bash
-poetry run dvc metrics show
-# ou
+make metrics
+# ou diretamente:
 uv run dvc metrics show
 ```
 
@@ -175,34 +196,49 @@ model:
 
 ## Docker
 
-O projeto tem um `Dockerfile` multi-stage (builder → runtime → pipeline) e um `docker-compose.yml` com 3 serviços.
+O projeto tem um `Dockerfile` multi-stage (builder → runtime → pipeline) e um `docker-compose.yml` com 3 serviços. O Dockerfile usa **uv** como gerenciador de dependências.
 
-> **Pré-requisito:** os dados já devem estar em `data/processed/` (rode `dvc repro` antes, ou `dvc pull`).
+> **Pré-requisito:** os dados já devem estar em `data/raw/` e o `.env` deve existir (veja [Setup do Ambiente](#setup-do-ambiente)).
 
-### 1. Subir o MLflow Server
+### Comandos via Makefile
 
 ```bash
-docker compose up mlflow -d
+make docker-up            # Sobe o MLflow Server (http://localhost:5001)
+make docker-train         # Executa treino no container
+make docker-pipeline      # Executa dvc repro no container
+make docker-down          # Derruba todos os serviços
+make docker-build         # Builda as imagens
+make docker-ps            # Status dos containers
+make docker-logs          # Logs em tempo real
+make docker-from-scratch  # Limpa, builda e sobe tudo do zero
 ```
 
-Acesse a UI em `http://localhost:5001`.
-
-### 2. Rodar o treino via container
+### Comandos equivalentes via `docker compose`
 
 ```bash
-docker compose run --rm train
+docker compose up mlflow -d        # Sobe o MLflow Server
+docker compose run --rm train      # Executa treino
+docker compose run --rm pipeline   # Executa dvc repro
+docker compose down                # Derruba serviços
 ```
 
-### 3. Rodar o pipeline completo com DVC dentro do container
+### GPU (Linux + NVIDIA)
+
+> [!WARNING]
+> **Suporte a GPU via Docker requer Linux com drivers NVIDIA e [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) instalados.** No macOS e Windows, o Docker Desktop **não suporta GPU passthrough** (nem CUDA, nem MPS). Nesses ambientes, o PyTorch usa CPU automaticamente (fallback seguro).
+
+Para executar com GPU:
 
 ```bash
-docker compose run --rm pipeline
+make docker-train-gpu     # Treino com GPU
+make docker-pipeline-gpu  # Pipeline com GPU
 ```
 
-### 4. Derrubar os serviços
+Ou diretamente:
 
 ```bash
-docker compose down
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm train
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm pipeline
 ```
 
 ---
@@ -225,12 +261,10 @@ Após executar o pipeline, rode o script de registro:
 
 ```bash
 # Garante que o servidor MLflow está rodando primeiro
-docker compose up mlflow -d
+make docker-up
 
 # Registra e promove o NeuMF para Production
 uv run python scripts/register_model.py
-# ou
-poetry run python scripts/register_model.py
 ```
 
 O script automaticamente:
@@ -257,16 +291,13 @@ print(client.get_model_version_by_alias('NeuMF-Instacart', 'champion'))
 
 ```bash
 # Rodar testes
-poetry run pytest
-# ou
 uv run pytest
 
 # Lint
-poetry run ruff check src tests
 uv run ruff check src tests
 
 # Validar ambiente
-poetry run python scripts/validate_env.py
+uv run python scripts/validate_env.py
 
 # Testar uma recomendação manualmente
 uv run python -c "
@@ -276,21 +307,46 @@ print(model.recommend(user_id=1, top_k=5))
 "
 
 # Ver métricas do pipeline
-poetry run dvc metrics show
+uv run dvc metrics show
 
 # Verificar status do pipeline DVC
-poetry run dvc status
+uv run dvc status
 ```
 
 Com `make` (Linux/macOS):
 
 ```bash
-make install     # instala dependências
-make test        # roda testes
-make lint        # roda o linter
-make pipeline    # executa dvc repro
-make metrics     # exibe métricas
-make help        # lista todos os comandos
+# Ambiente
+make install              # instala dependências (uv sync)
+make validate             # valida o ambiente
+
+# Qualidade
+make test                 # roda testes
+make lint                 # roda o linter
+make lint-fix             # corrige lint automaticamente
+
+# Pipeline
+make pipeline             # executa dvc repro (local)
+make metrics              # exibe métricas
+
+# Docker
+make docker-up            # sobe MLflow Server
+make docker-train         # treino no container
+make docker-pipeline      # dvc repro no container
+make docker-down          # derruba serviços
+make docker-from-scratch  # reset completo
+
+# Docker com GPU (Linux + NVIDIA)
+make docker-train-gpu     # treino com GPU
+make docker-pipeline-gpu  # pipeline com GPU
+
+# Limpeza
+make clean                # remove caches Python
+make clean-data           # remove dados intermediários e modelos
+make clean-docker         # remove containers/volumes Docker do projeto
+make clean-all            # limpeza completa
+
+make help                 # lista todos os comandos disponíveis
 ```
 
 ---
@@ -299,8 +355,9 @@ make help        # lista todos os comandos
 
 ```
 ecommerce-recommendation-system/
-├── Dockerfile                      # Multi-stage: builder → runtime → pipeline
+├── Dockerfile                      # Multi-stage: builder → runtime → pipeline (uv)
 ├── docker-compose.yml              # Serviços: mlflow, train, pipeline
+├── docker-compose.gpu.yml          # Overlay GPU para train/pipeline (Linux + NVIDIA)
 ├── Makefile                        # Atalhos para tarefas comuns
 ├── dvc.yaml                        # Pipeline DVC (4 etapas)
 ├── dvc.lock                        # Hashes dos artefatos (gerado por dvc repro)
