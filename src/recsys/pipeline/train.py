@@ -76,6 +76,8 @@ def train_svd(
     model.fit(train_df)
     _log.info("Modelo SVD treinado.")
 
+    mlflow.log_metric("n_train_interactions", len(train_df))
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("wb") as f:
         pickle.dump(model, f)
@@ -150,6 +152,11 @@ def train_neural(
         seed=seed,
     )
     recommender.fit(train_df)
+
+    if recommender.best_loss is not None and recommender.best_loss != float("inf"):
+        mlflow.log_metric("best_val_loss", recommender.best_loss)
+    mlflow.log_metric("n_train_interactions", len(train_df))
+
     recommender.save(str(output_path))
     _log.info("Checkpoint NeuMF salvo em '%s'.", output_path)
 
