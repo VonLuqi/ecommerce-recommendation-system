@@ -1,11 +1,10 @@
-/
 
 # E-Commerce Recommendation System
 
 ![Fase](https://img.shields.io/badge/fase-entrega-blue)
-![Stack](<https://img.shields.io/badge/stack-PyTorch%20%7C%20MLflow%20%7C%20DVC%20%7C%20Docker-informational>)
+![Stack](https://img.shields.io/badge/stack-PyTorch%20%7C%20MLflow%20%7C%20DVC%20%7C%20Docker-informational)
 ![Status](https://img.shields.io/badge/status-production-brightgreen)
-![Testes](<https://img.shields.io/badge/testes-40%20passando-brightgreen>)
+![Testes](https://img.shields.io/badge/testes-40%20passando-brightgreen)
 
 Sistema de recomendação de produtos para e-commerce baseado no histórico de compras do usuário, implementado com redes neurais do tipo embedding-based (**NeuMF**). Dataset: **Instacart Market Basket Analysis**.
 
@@ -200,22 +199,19 @@ model:
 
 O projeto tem um `Dockerfile` multi-stage (builder → runtime → pipeline) e um `docker-compose.yml` com 3 serviços. O Dockerfile usa **uv** como gerenciador de dependências.
 
-> [!IMPORTANT]
-> **Pré-requisito de dados:**
-> 1. Os dados brutos já devem estar em `data/raw/` e o `.env` deve existir (veja [Setup do Ambiente](#setup-do-ambiente)).
-> 2. **O pipeline DVC deve ser executado pelo menos uma vez antes do treino individual.** O comando de treino (`make docker-train`) depende de arquivos processados (`data/processed/train.parquet`). Caso execute uma limpeza (como `make clean-all`) ou inicie do zero, rode primeiro `make docker-pipeline` (ou `make pipeline` local) para processar e gerar os dados necessários.
+> **Pré-requisito:** os dados já devem estar em `data/raw/` e o `.env` deve existir (veja [Setup do Ambiente](#setup-do-ambiente)).
 
 ### Comandos via Makefile
 
 ```bash
 make docker-up            # Sobe o MLflow Server (http://localhost:5001)
-make docker-train         # Executa treino no container (CPU)
-make docker-pipeline      # Executa dvc repro no container (CPU)
+make docker-train         # Executa treino no container
+make docker-pipeline      # Executa dvc repro no container
 make docker-down          # Derruba todos os serviços
-make docker-build         # Builda as imagens (CPU — sem dependências de GPU, leve e rápido)
+make docker-build         # Builda as imagens
 make docker-ps            # Status dos containers
 make docker-logs          # Logs em tempo real
-make docker-from-scratch  # Limpa, builda (CPU) e sobe tudo do zero (CPU)
+make docker-from-scratch  # Limpa, builda e sobe tudo do zero
 ```
 
 ### Comandos equivalentes via `docker compose`
@@ -232,22 +228,16 @@ docker compose down                # Derruba serviços
 > [!WARNING]
 > **Suporte a GPU via Docker requer Linux com drivers NVIDIA e [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) instalados.** No macOS e Windows, o Docker Desktop **não suporta GPU passthrough** (nem CUDA, nem MPS). Nesses ambientes, o PyTorch usa CPU automaticamente (fallback seguro).
 
-Para construir e executar com GPU:
+Para executar com GPU:
 
 ```bash
-make docker-build-gpu         # Builda as imagens com suporte GPU (CUDA)
-make docker-train-gpu         # Treino no container com GPU
-make docker-pipeline-gpu      # Pipeline com GPU
-make docker-from-scratch-gpu  # Limpa, builda (GPU) e sobe tudo do zero (GPU)
+make docker-train-gpu     # Treino com GPU
+make docker-pipeline-gpu  # Pipeline com GPU
 ```
 
-Ou diretamente via Docker Compose:
+Ou diretamente:
 
 ```bash
-# Build
-GPU=true docker compose build
-
-# Execução
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm train
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm pipeline
 ```
@@ -340,19 +330,16 @@ make lint-fix             # corrige lint automaticamente
 make pipeline             # executa dvc repro (local)
 make metrics              # exibe métricas
 
-# Docker (CPU — sem GPU)
+# Docker
 make docker-up            # sobe MLflow Server
-make docker-build         # builda imagens (CPU)
-make docker-train         # treino no container (CPU)
-make docker-pipeline      # dvc repro no container (CPU)
+make docker-train         # treino no container
+make docker-pipeline      # dvc repro no container
 make docker-down          # derruba serviços
-make docker-from-scratch  # reset completo (CPU)
+make docker-from-scratch  # reset completo
 
 # Docker com GPU (Linux + NVIDIA)
-make docker-build-gpu     # builda imagens com GPU
 make docker-train-gpu     # treino com GPU
 make docker-pipeline-gpu  # pipeline com GPU
-make docker-from-scratch-gpu # reset completo (GPU)
 
 # Limpeza
 make clean                # remove caches Python
