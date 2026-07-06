@@ -143,11 +143,11 @@ stages:
       size: 2677
     - path: tests/
       hash: md5
-      md5: 04c31cd69156c8caab53fef6fc0d5848.dir
-      size: 177222
-      nfiles: 15
+      md5: 08f972571ab82a59f3a112a9ec3401bf.dir
+      size: 100442
+      nfiles: 10
     outs:
     - path: smoke_test_output.log
       hash: md5
-      md5: df00b5307c142738282de9fa386610a4
+      md5: 6953dd03b27ccc5bf426a562599fec81
       size: 4578

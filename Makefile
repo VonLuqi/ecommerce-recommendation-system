@@ -4,7 +4,7 @@
 # =============================================================================
 
 .PHONY: help install validate test lint lint-fix \
-        pipeline metrics dvc-init dvc-add-raw \
+        pipeline train metrics dvc-init dvc-add-raw \
         docker-up docker-down docker-build docker-ps docker-logs \
         docker-train docker-pipeline docker-from-scratch \
         docker-build-gpu docker-train-gpu docker-pipeline-gpu docker-from-scratch-gpu \
@@ -39,6 +39,7 @@ help:
 	@echo ""
 	@echo "Pipeline DVC:"
 	@echo "  make pipeline             Executa dvc repro (local)"
+	@echo "  make train                Executa treino local (CPU/MPS)"
 	@echo "  make metrics              Exibe métricas do último pipeline"
 	@echo "  make dvc-init             Inicializa o DVC no repositório"
 	@echo "  make dvc-add-raw          Versiona os CSVs brutos com DVC"
@@ -104,6 +105,11 @@ dvc-add-raw:  ## Versiona os CSVs brutos com DVC
 
 pipeline:  ## Executa o pipeline completo via DVC (local)
 	$(UV_RUN) dvc repro
+
+train:  ## Executa treino local (CPU/MPS)
+	$(UV_RUN) python -m recsys.pipeline.train \
+		--input data/processed/train.parquet \
+		--output models/model.pkl
 
 metrics:  ## Exibe as métricas do último pipeline executado
 	$(UV_RUN) dvc metrics show
