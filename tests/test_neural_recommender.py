@@ -118,6 +118,23 @@ def test_neural_recommender_respects_custom_num_negatives(
     assert recommender.num_negatives == 7
 
 
+def test_recommend_batch_uses_configurable_inference_batch_size(
+    sample_interactions: pd.DataFrame,
+) -> None:
+    """recommend_batch deve aceitar um batch_size de inferência configurável
+    em vez do valor hardcoded de 64, permitindo controlar o pico de memória."""
+    recommender = NeuralRecommender(embedding_dim=4, epochs=1)
+    recommender.fit(sample_interactions)
+
+    user_ids = sample_interactions["user_id"].unique().tolist()
+    results = recommender.recommend_batch(
+        user_ids, top_k=5, inference_batch_size=2
+    )
+
+    assert set(results.keys()) == set(user_ids)
+    assert all(len(v) <= 5 for v in results.values())
+
+
 def test_save_and_load(sample_interactions: pd.DataFrame) -> None:
     """Verify that NeuralRecommender can be saved and loaded successfully."""
     rec = NeuralRecommender(

@@ -602,12 +602,15 @@ class NeuralRecommender(BaseRecommender):
         self,
         user_ids: list[Any],
         top_k: int = 10,
+        inference_batch_size: int = 64,
     ) -> dict[Any, list[str]]:
         """Retorna recomendações top-K em lote de forma otimizada usando tensores do PyTorch.
 
         Args:
             user_ids: Lista de identificadores de utilizadores.
             top_k: Número de recomendações a retornar. Padrão: 10.
+            inference_batch_size: Tamanho do lote de usuários processados
+                por iteração. Padrão: 64.
 
         Returns:
             Dicionário mapeando cada user_id para sua lista de recomendações.
@@ -625,26 +628,41 @@ class NeuralRecommender(BaseRecommender):
             return results
 
         # Processa usuários em blocos para evitar estourar a memória (CPU ou GPU)
-        batch_size = 64
+        batch_size = inference_batch_size
         num_items = len(self._item_idx)
+        # Limita o pico de alocação a batch_size * item_chunk_size em vez de
+        # batch_size * num_items, evitando OOM em catálogos grandes.
+        item_chunk_size = min(num_items, 50_000)
 
         for i in range(0, len(known_users), batch_size):
             batch_u = known_users[i : i + batch_size]
             u_indices = [self._user_idx[u] for u in batch_u]
+            batch_len = len(batch_u)
 
-            # Expande tensores diretamente no dispositivo de destino, evitando overhead de alocação no host
-            # e transferência de grandes volumes de dados via barramento CPU-GPU
-            user_tensor = torch.tensor(
-                u_indices, dtype=torch.long, device=self.device
-            ).repeat_interleave(num_items)
-            item_tensor = self._all_item_ids_tensor.repeat(len(batch_u))
+            scores = np.empty((batch_len, num_items), dtype=np.float32)
 
-            with torch.no_grad():
-                scores = self._model(user_tensor, item_tensor)
-                scores = scores.cpu().numpy().reshape(len(batch_u), num_items)
+            for item_start in range(0, num_items, item_chunk_size):
+                item_end = min(item_start + item_chunk_size, num_items)
+                chunk_len = item_end - item_start
+
+                # Expande tensores diretamente no dispositivo de destino, evitando overhead de alocação no host
+                # e transferência de grandes volumes de dados via barramento CPU-GPU
+                user_tensor = torch.tensor(
+                    u_indices, dtype=torch.long, device=self.device
+                ).repeat_interleave(chunk_len)
+                item_tensor = self._all_item_ids_tensor[item_start:item_end].repeat(
+                    batch_len
+                )
+
+                with torch.no_grad():
+                    chunk_scores = self._model(user_tensor, item_tensor)
+                    scores[:, item_start:item_end] = (
+                        chunk_scores.cpu().numpy().reshape(batch_len, chunk_len)
+                    )
 
             # Usa argpartition para encontrar os top-K maiores na CPU usando NumPy
-            partition_idx = np.argpartition(scores, -top_k, axis=1)[:, -top_k:]
+            k = min(top_k, num_items)
+            partition_idx = np.argpartition(scores, -k, axis=1)[:, -k:]
 
             for idx_in_batch, u_id in enumerate(batch_u):
                 user_top_indices = partition_idx[idx_in_batch]
