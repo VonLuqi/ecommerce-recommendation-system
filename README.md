@@ -200,7 +200,10 @@ model:
 
 O projeto tem um `Dockerfile` multi-stage (builder → runtime → pipeline) e um `docker-compose.yml` com 3 serviços. O Dockerfile usa **uv** como gerenciador de dependências.
 
-> **Pré-requisito:** os dados já devem estar em `data/raw/` e o `.env` deve existir (veja [Setup do Ambiente](#setup-do-ambiente)).
+> [!IMPORTANT]
+> **Pré-requisito de dados:**
+> 1. Os dados brutos já devem estar em `data/raw/` e o `.env` deve existir (veja [Setup do Ambiente](#setup-do-ambiente)).
+> 2. **O pipeline DVC deve ser executado pelo menos uma vez antes do treino individual.** O comando de treino (`make docker-train`) depende de arquivos processados (`data/processed/train.parquet`). Caso execute uma limpeza (como `make clean-all`) ou inicie do zero, rode primeiro `make docker-pipeline` (ou `make pipeline` local) para processar e gerar os dados necessários.
 
 ### Comandos via Makefile
 
