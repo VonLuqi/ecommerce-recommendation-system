@@ -74,6 +74,31 @@ class TestAppSettings:
 
 
 # ---------------------------------------------------------------------------
+# ModelSettings — recommender_type enum constraint
+# ---------------------------------------------------------------------------
+
+
+def test_recommender_type_rejects_invalid_value() -> None:
+    """ModelSettings deve rejeitar valores de recommender_type fora do conjunto
+    suportado (baseline, neural, popularity)."""
+    from pydantic import ValidationError
+
+    from recsys.config.settings import ModelSettings
+
+    with pytest.raises(ValidationError):
+        ModelSettings(RECOMMENDER_TYPE="invalid_type")
+
+
+def test_recommender_type_accepts_valid_values() -> None:
+    """ModelSettings deve aceitar os três valores suportados."""
+    from recsys.config.settings import ModelSettings
+
+    for valid in ("baseline", "neural", "popularity"):
+        s = ModelSettings(RECOMMENDER_TYPE=valid)
+        assert s.recommender_type == valid
+
+
+# ---------------------------------------------------------------------------
 # fix_seeds
 # ---------------------------------------------------------------------------
 

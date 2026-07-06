@@ -22,6 +22,7 @@ SOLID:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -50,7 +51,9 @@ class ModelSettings(BaseSettings):
     top_k: int = Field(default=10, ge=1, alias="TOP_K")
     random_seed: int = Field(default=42, alias="RANDOM_SEED")
     models_path: Path = Field(default=Path("models"), alias="MODELS_PATH")
-    recommender_type: str = Field(default="baseline", alias="RECOMMENDER_TYPE")
+    recommender_type: Literal["baseline", "neural", "popularity"] = Field(
+        default="baseline", alias="RECOMMENDER_TYPE"
+    )
 
 
 class MLflowSettings(BaseSettings):
