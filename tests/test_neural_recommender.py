@@ -103,6 +103,21 @@ def test_fit_and_recommend(sample_interactions: pd.DataFrame) -> None:
     assert rec.recommend(user_id="non_existent_user", top_k=5) == []
 
 
+def test_neural_recommender_respects_custom_num_negatives(
+    sample_interactions: pd.DataFrame,
+) -> None:
+    """NeuralRecommender deve propagar num_negatives customizado para o
+    sampler de negativos, não usar o valor hardcoded de 4."""
+    recommender = NeuralRecommender(
+        embedding_dim=4,
+        epochs=1,
+        num_negatives=7,
+    )
+    recommender.fit(sample_interactions)
+
+    assert recommender.num_negatives == 7
+
+
 def test_save_and_load(sample_interactions: pd.DataFrame) -> None:
     """Verify that NeuralRecommender can be saved and loaded successfully."""
     rec = NeuralRecommender(

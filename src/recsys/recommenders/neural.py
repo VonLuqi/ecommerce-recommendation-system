@@ -235,6 +235,7 @@ class NeuralRecommender(BaseRecommender):
         patience: int = 5,
         min_delta: float = 1e-4,
         val_split: float = 0.02,
+        num_negatives: int = 4,
         seed: int = 42,
         device: str | None = None,
     ) -> None:
@@ -254,6 +255,8 @@ class NeuralRecommender(BaseRecommender):
             patience: Paciência do early stopping. Padrão: 5.
             min_delta: Variação mínima para melhoria. Padrão: 1e-4.
             val_split: Proporção dos dados para validação. Padrão: 0.2.
+            num_negatives: Número de negativos amostrados por interação
+                positiva durante o treino e validação. Padrão: 4.
             seed: Semente global para reprodutibilidade. Padrão: 42.
             device: Dispositivo ('cuda', 'cpu' ou ``None`` para auto-detecção).
         """
@@ -272,6 +275,7 @@ class NeuralRecommender(BaseRecommender):
         self.patience = patience
         self.min_delta = min_delta
         self.val_split = val_split
+        self.num_negatives = num_negatives
         self.seed = seed
         if device is None:
             if torch.cuda.is_available():
@@ -447,7 +451,7 @@ class NeuralRecommender(BaseRecommender):
         # --- Datasets e DataLoaders de Validação (negativos fixos pré-gerados) ---
         _log.info("Gerando negativos para conjunto de validação...")
         val_dataset = self._sample_negatives_dataset(
-            val_user_ids, val_item_ids, num_negatives=4
+            val_user_ids, val_item_ids, num_negatives=self.num_negatives
         )
         val_loader = DataLoader(
             val_dataset,
@@ -461,7 +465,9 @@ class NeuralRecommender(BaseRecommender):
             train_item_ids,
             np.ones(len(train_user_ids), dtype=np.float32),
         )
-        train_collate = _NegativeSamplingCollate(user_pos, num_items, num_negatives=4)
+        train_collate = _NegativeSamplingCollate(
+            user_pos, num_items, num_negatives=self.num_negatives
+        )
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.batch_size,
