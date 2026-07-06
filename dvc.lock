@@ -57,7 +57,7 @@ stages:
       size: 141644488
   train:
     cmd: python -m recsys.pipeline.train --input data/processed/train.parquet 
-      --output models/model.pkl --seed 42 --mode neural --embedding-dim 8 
+      --output models/model.pkl --seed 42 --mode baseline --embedding-dim 8 
       --epochs 20 --batch-size 1024 --lr 0.01 --dropout 0.2 --patience 3 
       --val-split 0.02
     deps:
@@ -71,8 +71,8 @@ stages:
       size: 7230
     - path: src/recsys/pipeline/train.py
       hash: md5
-      md5: 3c7ea02304fcaf209a4365bb33adccf9
-      size: 9960
+      md5: 64fd9790aa51242b3733c306dedc5f1b
+      size: 10463
     - path: src/recsys/recommenders/base.py
       hash: md5
       md5: 5264d17dda69e5d191ad685d315e71cf
@@ -93,13 +93,13 @@ stages:
         model.epochs: 20
         model.lr: 0.01
         model.patience: 3
-        model.recommender_type: neural
+        model.recommender_type: baseline
         model.val_split: 0.02
     outs:
     - path: models/model.pkl
       hash: md5
-      md5: c45d2cd7e087cbb0fa3ba17f89e1692c
-      size: 15274011
+      md5: 07e36d54e2bf2c6be9a817b211bd7b9e
+      size: 102791678
   evaluate:
     cmd: python -m recsys.pipeline.evaluate --model models/model.pkl --data 
       data/processed/test.parquet --train-data data/processed/train.parquet 
@@ -115,16 +115,16 @@ stages:
       size: 141644488
     - path: models/model.pkl
       hash: md5
-      md5: c45d2cd7e087cbb0fa3ba17f89e1692c
-      size: 15274011
+      md5: 07e36d54e2bf2c6be9a817b211bd7b9e
+      size: 102791678
     - path: src/recsys/metrics/evaluation.py
       hash: md5
       md5: 7f09ff6f35ac95f3bb57c493e45e4e37
       size: 2677
     - path: src/recsys/pipeline/evaluate.py
       hash: md5
-      md5: cddb85a7f9b3f7a113d60c79316a1b36
-      size: 6866
+      md5: e5eca0fe76a0c5451cb953924294d567
+      size: 7826
     - path: src/recsys/recommenders/base.py
       hash: md5
       md5: 5264d17dda69e5d191ad685d315e71cf
@@ -132,8 +132,8 @@ stages:
     outs:
     - path: metrics.json
       hash: md5
-      md5: 4c204207da14650ac6587654de1a8c32
-      size: 247
+      md5: d8b40f422f66bc60ab2e43977a3d7b30
+      size: 246
   run_tests:
     cmd: python -m pytest > smoke_test_output.log
     deps:
@@ -149,5 +149,5 @@ stages:
     outs:
     - path: smoke_test_output.log
       hash: md5
-      md5: 6953dd03b27ccc5bf426a562599fec81
+      md5: 3d19e30c9ddd98a6b49f5df1d621a66a
       size: 4578

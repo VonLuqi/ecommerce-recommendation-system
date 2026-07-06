@@ -36,6 +36,7 @@ import pandas as pd
 
 from recsys.config import settings
 from recsys.utils.seeds import fix_seeds
+from recsys.utils.mlflow import get_friendly_tracking_uri
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 _log = logging.getLogger(__name__)
@@ -306,11 +307,14 @@ def main() -> None:
 
     with mlflow.start_run() as run:
         mlflow.log_param("execution_mode", args.mode)
+
+        # Resolve e exibe links dinâmicos
         tracking_uri = settings.mlflow.tracking_uri or ""
-        if "mlflow:5000" in tracking_uri:
-            friendly_url = f"http://localhost:5001/#/experiments/{run.info.experiment_id}/runs/{run.info.run_id}"
-            print(f"🏃 View run at: {friendly_url}")
-            print(f"🧪 View experiment at: http://localhost:5001/#/experiments/{run.info.experiment_id}")
+        friendly_uri = get_friendly_tracking_uri(tracking_uri)
+        if friendly_uri and friendly_uri != "mlruns":
+            print(f"🏃 View run at: {friendly_uri}/#/experiments/{run.info.experiment_id}/runs/{run.info.run_id}")
+            print(f"🧪 View experiment at: {friendly_uri}/#/experiments/{run.info.experiment_id}")
+
         if args.mode == "baseline":
             train_svd(
                 input_path=args.input,

@@ -31,6 +31,7 @@ import pandas as pd
 from recsys.config import settings
 from recsys.metrics.evaluation import map_at_k, ndcg_at_k, precision_at_k, recall_at_k
 from recsys.recommenders.base import BaseRecommender
+from recsys.utils.mlflow import get_latest_run_id, get_friendly_tracking_uri
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 _log = logging.getLogger(__name__)
@@ -152,7 +153,16 @@ def evaluate(
         if settings.mlflow.tracking_uri:
             mlflow.set_tracking_uri(settings.mlflow.tracking_uri)
 
-        if mlflow.active_run():
+        # Busca a run do treino diretamente no MLflow para unificação
+        run_id = get_latest_run_id(settings.mlflow.experiment_name)
+
+        if run_id:
+            # Reabre a run existente e grava as métricas nela
+            with mlflow.start_run(run_id=run_id):
+                for key, value in metrics.items():
+                    if isinstance(value, (int, float)):
+                        mlflow.log_metric(key, float(value))
+        elif mlflow.active_run():
             for key, value in metrics.items():
                 if isinstance(value, (int, float)):
                     mlflow.log_metric(key, float(value))
@@ -161,10 +171,10 @@ def evaluate(
             with mlflow.start_run(run_name="evaluation") as run:
                 mlflow.log_param("evaluate_only", True)
                 tracking_uri = settings.mlflow.tracking_uri or ""
-                if "mlflow:5000" in tracking_uri:
-                    friendly_url = f"http://localhost:5001/#/experiments/{run.info.experiment_id}/runs/{run.info.run_id}"
-                    print(f"🏃 View run at: {friendly_url}")
-                    print(f"🧪 View experiment at: http://localhost:5001/#/experiments/{run.info.experiment_id}")
+                friendly_uri = get_friendly_tracking_uri(tracking_uri)
+                if friendly_uri and friendly_uri != "mlruns":
+                    print(f"🏃 View run at: {friendly_uri}/#/experiments/{run.info.experiment_id}/runs/{run.info.run_id}")
+                    print(f"🧪 View experiment at: {friendly_uri}/#/experiments/{run.info.experiment_id}")
                 for key, value in metrics.items():
                     if isinstance(value, (int, float)):
                         mlflow.log_metric(key, float(value))
