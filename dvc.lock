@@ -57,7 +57,7 @@ stages:
       size: 141644488
   train:
     cmd: python -m recsys.pipeline.train --input data/processed/train.parquet 
-      --output models/model.pkl --seed 42 --mode baseline --embedding-dim 8 
+      --output models/model.pkl --seed 42 --mode neural --embedding-dim 8 
       --epochs 20 --batch-size 1024 --lr 0.01 --dropout 0.2 --patience 3 
       --val-split 0.02
     deps:
@@ -93,13 +93,13 @@ stages:
         model.epochs: 20
         model.lr: 0.01
         model.patience: 3
-        model.recommender_type: baseline
+        model.recommender_type: neural
         model.val_split: 0.02
     outs:
     - path: models/model.pkl
       hash: md5
-      md5: 07e36d54e2bf2c6be9a817b211bd7b9e
-      size: 102791678
+      md5: 05cd6466de68521a48b506acda9f3112
+      size: 15274011
   evaluate:
     cmd: python -m recsys.pipeline.evaluate --model models/model.pkl --data 
       data/processed/test.parquet --train-data data/processed/train.parquet 
@@ -115,8 +115,8 @@ stages:
       size: 141644488
     - path: models/model.pkl
       hash: md5
-      md5: 07e36d54e2bf2c6be9a817b211bd7b9e
-      size: 102791678
+      md5: 05cd6466de68521a48b506acda9f3112
+      size: 15274011
     - path: src/recsys/metrics/evaluation.py
       hash: md5
       md5: 7f09ff6f35ac95f3bb57c493e45e4e37
@@ -132,7 +132,7 @@ stages:
     outs:
     - path: metrics.json
       hash: md5
-      md5: d8b40f422f66bc60ab2e43977a3d7b30
+      md5: 8d804189ab8c4423cba9edcc8c4fbf66
       size: 246
   run_tests:
     cmd: python -m pytest > smoke_test_output.log
@@ -149,5 +149,5 @@ stages:
     outs:
     - path: smoke_test_output.log
       hash: md5
-      md5: 3d19e30c9ddd98a6b49f5df1d621a66a
+      md5: af1c7b36a72cdb24d11627e321349f81
       size: 4578
