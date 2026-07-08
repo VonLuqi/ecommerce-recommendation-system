@@ -1,4 +1,3 @@
-
 # E-Commerce Recommendation System
 
 ![Fase](https://img.shields.io/badge/fase-entrega-blue)
@@ -442,3 +441,20 @@ chore:     build, dependências, configuração
 
 - He, X. et al. (2017). *Neural Collaborative Filtering*. WWW '17. [arXiv:1708.05031](https://arxiv.org/abs/1708.05031)
 - Instacart. *Instacart Market Basket Analysis*. Kaggle, 2017.
+
+---
+
+## Autores
+
+**Grupo  — FIAP Pós-Tech, Produtização de Modelos de IA**
+
+- **Eduardo Batista** — [eduardoobatista2002@hotmail.com](mailto:eduardoobatista2002@hotmail.com)
+- **Lucas Frederico** — [vonluqi@gmail.com](mailto:vonluqi@gmail.com)
+- **Pedro Henrique Siqueira Lopes** — [pedroppzs01@gmail.com](mailto:pedroppzs01@gmail.com)
+- **Victor Kenji Tamanaha Murad** — [victorkmurad@gmail.com](mailto:victorkmurad@gmail.com)
+
+---
+
+## Licença
+
+Este projeto está licenciado sob a [MIT License](LICENSE).
