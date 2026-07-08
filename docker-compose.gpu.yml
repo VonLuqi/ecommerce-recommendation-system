@@ -1,0 +1,36 @@
+# =============================================================================
+# docker-compose.gpu.yml — Overlay para expor GPU NVIDIA nos containers
+#
+# ⚠️  REQUISITOS:
+#   - Linux com drivers NVIDIA instalados
+#   - NVIDIA Container Toolkit (nvidia-docker2)
+#   - Docker Desktop NÃO suporta GPU no macOS/Windows
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm train
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm pipeline
+#
+# Ou via Makefile:
+#   make docker-train-gpu
+#   make docker-pipeline-gpu
+# =============================================================================
+
+services:
+
+  train:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  pipeline:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

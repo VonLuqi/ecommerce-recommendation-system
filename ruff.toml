@@ -20,12 +20,14 @@ select = ["E", "W", "F", "I", "N", "UP", "ANN", "S", "B", "C4", "SIM"]
 
 ignore = [
     "ANN401",  # Dynamically typed expressions (Any) are disallowed
+    "E501",    # Line too long — ruff format cuida do código; docstrings/comentários são livres
 ]
 
 [lint.per-file-ignores]
 # Em testes: dispensar anotações, assert nativo do pytest e uso de geradores
 # pseudo-aleatórios (S311 é falso-positivo em testes de reprodutibilidade)
-"tests/**" = ["ANN", "S101", "S311"]
+"tests/**" = ["ANN", "S101", "S311", "S301"]
+"scripts/**" = ["ANN", "S101", "E402", "I001"]
 
 [lint.isort]
 known-first-party = ["recsys"]

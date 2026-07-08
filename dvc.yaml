@@ -1,0 +1,109 @@
+stages:
+
+  # ---------------------------------------------------------------------------
+  # 1. Pré-processamento
+  #    Lê os CSVs brutos do Instacart, aplica k-core e salva em data/interim/.
+  # ---------------------------------------------------------------------------
+  preprocess:
+    cmd: >-
+      python -m recsys.pipeline.preprocess
+      --raw-dir data/raw
+      --output data/interim/preprocessed.parquet
+      --kcore 5
+    deps:
+      - src/recsys/pipeline/preprocess.py
+      - src/recsys/data/instacart_loader.py
+      - src/recsys/data/loader.py
+      - data/raw/orders.csv
+      - data/raw/order_products__prior.csv
+    outs:
+      - data/interim/preprocessed.parquet
+
+  # ---------------------------------------------------------------------------
+  # 2. Feature engineering
+  #    Codifica IDs em índices inteiros e divide em treino/teste (80/20).
+  # ---------------------------------------------------------------------------
+  feature_eng:
+    cmd: >-
+      python -m recsys.pipeline.feature_eng
+      --input data/interim/preprocessed.parquet
+      --output-dir data/processed
+      --test-size 0.2
+      --seed 42
+    deps:
+      - src/recsys/pipeline/feature_eng.py
+      - data/interim/preprocessed.parquet
+    outs:
+      - data/processed/features.parquet
+      - data/processed/train.parquet
+      - data/processed/test.parquet
+
+  # ---------------------------------------------------------------------------
+  # 3. Treino
+  #    Treina o baseline SVD e serializa o modelo.
+  # ---------------------------------------------------------------------------
+  train:
+    cmd: >-
+      python -m recsys.pipeline.train
+      --input data/processed/train.parquet
+      --output models/model.pkl
+      --seed 42
+      --mode ${model.recommender_type}
+      --embedding-dim ${model.embedding_dim}
+      --epochs ${model.epochs}
+      --batch-size ${model.batch_size}
+      --lr ${model.lr}
+      --dropout ${model.dropout}
+      --patience ${model.patience}
+      --val-split ${model.val_split}
+    deps:
+      - src/recsys/pipeline/train.py
+      - src/recsys/recommenders/baseline.py
+      - src/recsys/recommenders/neural.py
+      - src/recsys/models/neural_net.py
+      - src/recsys/recommenders/base.py
+      - data/processed/train.parquet
+    params:
+      - model.recommender_type
+      - model.embedding_dim
+      - model.epochs
+      - model.batch_size
+      - model.lr
+      - model.dropout
+      - model.patience
+      - model.val_split
+    outs:
+      - models/model.pkl
+
+  # ---------------------------------------------------------------------------
+  # 4. Avaliação
+  #    Computa Precision@10, Recall@10, NDCG@10 e MAP@10 sobre teste.
+  #    Resultado em metrics.json (sem cache DVC).
+  # ---------------------------------------------------------------------------
+  evaluate:
+    cmd: >-
+      python -m recsys.pipeline.evaluate
+      --model models/model.pkl
+      --data data/processed/test.parquet
+      --train-data data/processed/train.parquet
+      --output metrics.json
+      --top-k 10
+    deps:
+      - src/recsys/pipeline/evaluate.py
+      - src/recsys/metrics/evaluation.py
+      - src/recsys/recommenders/base.py
+      - models/model.pkl
+      - data/processed/test.parquet
+      - data/processed/train.parquet
+    metrics:
+      - metrics.json:
+          cache: false
+
+  run_tests:
+    cmd: python -m pytest > smoke_test_output.log
+    deps:
+      - src/recsys/metrics/evaluation.py
+      - tests/
+    outs:
+      - smoke_test_output.log:
+          cache: false

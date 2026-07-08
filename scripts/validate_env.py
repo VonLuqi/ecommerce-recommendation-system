@@ -34,11 +34,11 @@ MIN_PYTHON = (3, 11)
 # Dependências cuja presença é verificada por importação
 REQUIRED_PACKAGES: list[str] = [
     "torch",
-    "sklearn",       # scikit-learn
+    "sklearn",  # scikit-learn
     "mlflow",
     "pydantic",
     "pydantic_settings",
-    "dotenv",        # python-dotenv
+    "dotenv",  # python-dotenv
     "numpy",
     "pandas",
 ]

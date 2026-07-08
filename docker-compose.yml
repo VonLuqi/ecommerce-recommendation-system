@@ -1,0 +1,124 @@
+# =============================================================================
+# docker-compose.yml — Serviços do ecommerce-recommendation-system
+#
+# Serviços:
+#   mlflow   — MLflow Tracking Server (porta 5001 no host → 5000 no container)
+#   train    — Executa etapa de treino isolada (runtime)
+#   pipeline — Executa o pipeline completo via dvc repro (runtime + DVC)
+#
+# Uso rápido:
+#   docker compose up mlflow -d        # sobe só o servidor MLflow
+#   docker compose run --rm train      # roda treino uma vez e sai
+#   docker compose run --rm pipeline   # roda dvc repro e sai
+#
+# Com GPU (Linux + NVIDIA):
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml run --rm train
+#
+# ⚠️  MLFLOW_TRACKING_URI:
+#   Os serviços train e pipeline usam http://mlflow:5000 (rede interna Docker).
+#   Localmente, use http://localhost:5001 (porta mapeada no host).
+#   Ambos apontam para o MESMO servidor — todos os registros são unificados
+#   no mesmo backend (mlruns/mlflow.db).
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # MLflow Tracking Server
+  # Acessível no host em: http://localhost:5001
+  # Acessível na rede Docker em: http://mlflow:5000
+  # ---------------------------------------------------------------------------
+  mlflow:
+    build:
+      context: .
+      target: runtime
+      args:
+        - GPU=${GPU:-false}
+    command: >
+      mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri sqlite:///mlruns/mlflow.db
+        --default-artifact-root mlflow-artifacts:/
+        --serve-artifacts
+    environment:
+      MLFLOW_SERVER_ALLOWED_HOSTS: "*"
+    networks:
+      - default
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./mlruns:/app/mlruns
+    user: root
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Serviço de treino (execução pontual)
+  # Roda python -m recsys.pipeline.train e sai.
+  # Os dados e modelos são lidos/gravados via volumes do host.
+  # ---------------------------------------------------------------------------
+  train:
+    build:
+      context: .
+      target: runtime
+      args:
+        - GPU=${GPU:-false}
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./src:/app/src
+      - ./configs:/app/configs
+    env_file:
+      - .env
+    environment:
+      # Endereço do MLflow na rede interna Docker.
+      # Aponta para o MESMO servidor acessível em localhost:5001 no host.
+      # Resultado: todos os experimentos (local + Docker) ficam unificados.
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_AVOID_PRINT_RUN_URL: "true"
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    networks:
+      - default
+
+  # ---------------------------------------------------------------------------
+  # Pipeline completo via DVC (dvc repro)
+  # Integração Docker + DVC: executa preprocess → feature_eng → train → evaluate
+  # dentro do container, lendo dados do volume montado.
+  # ---------------------------------------------------------------------------
+  pipeline:
+    build:
+      context: .
+      target: pipeline
+      args:
+        - GPU=${GPU:-false}
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./tests:/app/tests
+      - ./dvc.yaml:/app/dvc.yaml
+      - ./params.yaml:/app/params.yaml
+    env_file:
+      - .env
+    environment:
+      # Endereço do MLflow na rede interna Docker.
+      # Aponta para o MESMO servidor acessível em localhost:5001 no host.
+      # Resultado: todos os experimentos (local + Docker) ficam unificados.
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_AVOID_PRINT_RUN_URL: "true"
+    networks:
+      - default
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    command: /app/.venv/bin/dvc repro --no-commit

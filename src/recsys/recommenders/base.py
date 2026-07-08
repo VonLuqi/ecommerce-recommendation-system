@@ -57,3 +57,22 @@ class BaseRecommender(ABC):
             Lista de identificadores de itens ordenada por relevância
             predita, do mais ao menos relevante.
         """
+
+    def recommend_batch(
+        self,
+        user_ids: list[Any],
+        top_k: int = 10,
+    ) -> dict[Any, list[str]]:
+        """Retorna as recomendações top-K em lote para vários usuários.
+
+        Implementação padrão executa recommend() em loop. Pode ser sobrescrita
+        por subclasses para melhoria de desempenho através de vetorização.
+
+        Args:
+            user_ids: Lista de identificadores de usuários.
+            top_k: Número de recomendações a retornar. Padrão: 10.
+
+        Returns:
+            Dicionário mapeando cada user_id para sua lista de recomendações.
+        """
+        return {u_id: self.recommend(u_id, top_k) for u_id in user_ids}

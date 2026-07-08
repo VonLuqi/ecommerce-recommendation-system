@@ -22,6 +22,7 @@ SOLID:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -33,10 +34,13 @@ class DataSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     raw_data_path: Path = Field(default=Path("data/raw"), alias="RAW_DATA_PATH")
+    interim_data_path: Path = Field(
+        default=Path("data/interim"), alias="INTERIM_DATA_PATH"
+    )
     processed_data_path: Path = Field(
         default=Path("data/processed"), alias="PROCESSED_DATA_PATH"
     )
-    dataset_name: str = Field(default="Toys_and_Games", alias="DATASET_NAME")
+    dataset_name: str = Field(default="instacart", alias="DATASET_NAME")
 
 
 class ModelSettings(BaseSettings):
@@ -47,6 +51,9 @@ class ModelSettings(BaseSettings):
     top_k: int = Field(default=10, ge=1, alias="TOP_K")
     random_seed: int = Field(default=42, alias="RANDOM_SEED")
     models_path: Path = Field(default=Path("models"), alias="MODELS_PATH")
+    recommender_type: Literal["baseline", "neural", "popularity"] = Field(
+        default="baseline", alias="RECOMMENDER_TYPE"
+    )
 
 
 class MLflowSettings(BaseSettings):
@@ -54,11 +61,9 @@ class MLflowSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    tracking_uri: str = Field(
-        default="mlruns", alias="MLFLOW_TRACKING_URI"
-    )
+    tracking_uri: str = Field(default="mlruns", alias="MLFLOW_TRACKING_URI")
     experiment_name: str = Field(
-        default="neumf-amazon-toys", alias="MLFLOW_EXPERIMENT_NAME"
+        default="neumf-instacart", alias="MLFLOW_EXPERIMENT_NAME"
     )
 
 
@@ -106,7 +111,6 @@ class AppSettings(BaseSettings):
         allowed = {"development", "staging", "production"}
         if self.environment not in allowed:
             raise ValueError(
-                f"environment deve ser um de {allowed}, "
-                f"recebido: '{self.environment}'"
+                f"environment deve ser um de {allowed}, recebido: '{self.environment}'"
             )
         return self

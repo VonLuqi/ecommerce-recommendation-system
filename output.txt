@@ -1,0 +1,10 @@
+[OK] NeuMF instanciado - parametros: 657
+[OK] Forward pass - shape: torch.Size([3]), valores: [-6.883239223043347e-08, -3.1526349175692303e-07, -7.070434548950288e-08]
+[OK] NeuralRecommender herda de BaseRecommender
+[OK] src/recsys/models/neural_net.py existe
+[OK] src/recsys/models/__init__.py existe
+[OK] src/recsys/recommenders/neural.py existe
+[OK] src/recsys/recommenders/__init__.py existe
+[OK] src/recsys/pipeline/train.py existe
+
+=== MODELO NEURAL FUNCIONAL ===

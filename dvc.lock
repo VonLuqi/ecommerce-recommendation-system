@@ -1,0 +1,153 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python -m recsys.pipeline.preprocess --raw-dir data/raw --output 
+      data/interim/preprocessed.parquet --kcore 5
+    deps:
+    - path: data/raw/order_products__prior.csv
+      hash: md5
+      md5: 8bca7ad1968ee8e07760b94db74461fb
+      size: 577550706
+    - path: data/raw/orders.csv
+      hash: md5
+      md5: dd0b2f4ee716409b8e79e7b1c611a0b8
+      size: 108968645
+    - path: src/recsys/data/instacart_loader.py
+      hash: md5
+      md5: 7f2f76f42201690bfbbeaa6acbcf83c3
+      size: 4214
+    - path: src/recsys/data/loader.py
+      hash: md5
+      md5: 286e9e1b7e75cb0d7a9a3fd57b052f08
+      size: 2015
+    - path: src/recsys/pipeline/preprocess.py
+      hash: md5
+      md5: be8b440b30feb55f9cd124119002bcdf
+      size: 3755
+    outs:
+    - path: data/interim/preprocessed.parquet
+      hash: md5
+      md5: 5336cf76c25e0c82dd47e3169f3b3c2a
+      size: 59540240
+  feature_eng:
+    cmd: python -m recsys.pipeline.feature_eng --input 
+      data/interim/preprocessed.parquet --output-dir data/processed --test-size 
+      0.2 --seed 42
+    deps:
+    - path: data/interim/preprocessed.parquet
+      hash: md5
+      md5: 5336cf76c25e0c82dd47e3169f3b3c2a
+      size: 59540240
+    - path: src/recsys/pipeline/feature_eng.py
+      hash: md5
+      md5: b783d53590437135def4071ac4acde24
+      size: 4347
+    outs:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: 8d805249373e0f2aff7299303934c70a
+      size: 109736817
+    - path: data/processed/test.parquet
+      hash: md5
+      md5: 7787a4b9426f06df7ea5077dcc51c1c1
+      size: 35545687
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: 20ce9b91996b373832b8efd91b41cabb
+      size: 141644488
+  train:
+    cmd: python -m recsys.pipeline.train --input data/processed/train.parquet 
+      --output models/model.pkl --seed 42 --mode neural --embedding-dim 8 
+      --epochs 20 --batch-size 1024 --lr 0.01 --dropout 0.2 --patience 3 
+      --val-split 0.02
+    deps:
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: 20ce9b91996b373832b8efd91b41cabb
+      size: 141644488
+    - path: src/recsys/models/neural_net.py
+      hash: md5
+      md5: c38fc257414efec1373d598ad1793647
+      size: 7230
+    - path: src/recsys/pipeline/train.py
+      hash: md5
+      md5: 64fd9790aa51242b3733c306dedc5f1b
+      size: 10463
+    - path: src/recsys/recommenders/base.py
+      hash: md5
+      md5: 5264d17dda69e5d191ad685d315e71cf
+      size: 2744
+    - path: src/recsys/recommenders/baseline.py
+      hash: md5
+      md5: 5bf2b6a9beaa62abe4f29f0afa08a3af
+      size: 5384
+    - path: src/recsys/recommenders/neural.py
+      hash: md5
+      md5: dcaebbe69cbbb40c71846c0526d77d23
+      size: 29481
+    params:
+      params.yaml:
+        model.batch_size: 1024
+        model.dropout: 0.2
+        model.embedding_dim: 8
+        model.epochs: 20
+        model.lr: 0.01
+        model.patience: 3
+        model.recommender_type: neural
+        model.val_split: 0.02
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: 05cd6466de68521a48b506acda9f3112
+      size: 15274011
+  evaluate:
+    cmd: python -m recsys.pipeline.evaluate --model models/model.pkl --data 
+      data/processed/test.parquet --train-data data/processed/train.parquet 
+      --output metrics.json --top-k 10
+    deps:
+    - path: data/processed/test.parquet
+      hash: md5
+      md5: 7787a4b9426f06df7ea5077dcc51c1c1
+      size: 35545687
+    - path: data/processed/train.parquet
+      hash: md5
+      md5: 20ce9b91996b373832b8efd91b41cabb
+      size: 141644488
+    - path: models/model.pkl
+      hash: md5
+      md5: 05cd6466de68521a48b506acda9f3112
+      size: 15274011
+    - path: src/recsys/metrics/evaluation.py
+      hash: md5
+      md5: 7f09ff6f35ac95f3bb57c493e45e4e37
+      size: 2677
+    - path: src/recsys/pipeline/evaluate.py
+      hash: md5
+      md5: e5eca0fe76a0c5451cb953924294d567
+      size: 7826
+    - path: src/recsys/recommenders/base.py
+      hash: md5
+      md5: 5264d17dda69e5d191ad685d315e71cf
+      size: 2744
+    outs:
+    - path: metrics.json
+      hash: md5
+      md5: 8d804189ab8c4423cba9edcc8c4fbf66
+      size: 246
+  run_tests:
+    cmd: python -m pytest > smoke_test_output.log
+    deps:
+    - path: src/recsys/metrics/evaluation.py
+      hash: md5
+      md5: 7f09ff6f35ac95f3bb57c493e45e4e37
+      size: 2677
+    - path: tests/
+      hash: md5
+      md5: 08f972571ab82a59f3a112a9ec3401bf.dir
+      size: 100442
+      nfiles: 10
+    outs:
+    - path: smoke_test_output.log
+      hash: md5
+      md5: af1c7b36a72cdb24d11627e321349f81
+      size: 4578
