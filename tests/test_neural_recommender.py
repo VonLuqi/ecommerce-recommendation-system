@@ -127,9 +127,7 @@ def test_recommend_batch_uses_configurable_inference_batch_size(
     recommender.fit(sample_interactions)
 
     user_ids = sample_interactions["user_id"].unique().tolist()
-    results = recommender.recommend_batch(
-        user_ids, top_k=5, inference_batch_size=2
-    )
+    results = recommender.recommend_batch(user_ids, top_k=5, inference_batch_size=2)
 
     assert set(results.keys()) == set(user_ids)
     assert all(len(v) <= 5 for v in results.values())
