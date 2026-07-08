@@ -56,7 +56,7 @@ O modelo **NeuMF** (Neural Matrix Factorization) foi treinado por 20 épocas e s
 ### 1. Clonar o repositório
 
 ```bash
-git clone <url-do-repositorio>
+git clone https://github.com/VonLuqi/ecommerce-recommendation-system.git
 cd ecommerce-recommendation-system
 ```
 
