@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
+
 import mlflow
+
+logger = logging.getLogger(__name__)
+
 
 def get_friendly_tracking_uri(current_uri: str) -> str:
     """Resolve a URI de tracking amigável para o host.
-    
-    Se estiver rodando dentro do container (mlflow:5000), tenta ler 
+
+    Se estiver rodando dentro do container (mlflow:5000), tenta ler
     a URI real configurada no arquivo .env do host.
     """
     if "mlflow:5000" in current_uri:
@@ -20,8 +25,8 @@ def get_friendly_tracking_uri(current_uri: str) -> str:
                         val = line.split("=", 1)[1].strip().strip("'\"")
                         if val:
                             return val
-            except Exception:
-                pass
+            except OSError:
+                logger.exception("Falha ao ler arquivo .env para MLFLOW_TRACKING_URI")
         return "http://localhost:5001"
     return current_uri
 
@@ -38,5 +43,7 @@ def get_latest_run_id(experiment_name: str) -> str | None:
         if not runs.empty:
             return str(runs.iloc[0].run_id)
     except Exception:
-        pass
+        logger.exception(
+            "Erro ao buscar latest run_id no experimento '%s'", experiment_name
+        )
     return None
